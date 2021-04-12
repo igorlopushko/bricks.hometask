@@ -1,5 +1,6 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Threading;
+using System.Threading.Tasks;
 
 namespace Bricks.Hometask.Sandbox
 {
@@ -7,68 +8,36 @@ namespace Bricks.Hometask.Sandbox
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            var server = new Server();
+            
+            Task serverTask = Task.Run(() => server.Run());
+
+            Client client1 = new Client(1);
+            server.RegisterClient(client1);
+            Task client1Task = Task.Run(() => client1.Run());
+            
+            Thread.Sleep(Timeout.TwoSeconds);
+            
+            Client client2 = new Client(2);
+            server.RegisterClient(client2);
+            Task client2Task = Task.Run(() => client2.Run());
+            
+            Thread.Sleep(Timeout.FiveSeconds);
+            
+            Client client3 = new Client(3);
+            server.RegisterClient(client3);
+            Task client3Task = Task.Run(() => client3.Run());
+            
+            /*Thread.Sleep(Timeout.FiveSeconds);
+            server.UnregisterClient(client2);
+            Thread.Sleep(Timeout.FiveSeconds);
+            server.UnregisterClient(client1);
+            Thread.Sleep(Timeout.FiveSeconds);
+            server.UnregisterClient(client3);*/
+            
+            Console.ReadLine();
         }
     }
 
-    public class Client
-    {
-        private List<int> _data;
-        public int ClientId { get; private set; }
-        public IEnumerable<int> Data
-        {
-            get
-            {
-                foreach (int product in _data)
-                {
-                    yield return product;
-                }
-            }
-        }
-
-        public Client(int clientId)
-        {
-            ClientId = clientId;
-            _data = new List<int>();
-        }
-
-        public void LoadData()
-        {
-            //TODO: get initial data from server
-        }
-    }
-
-    public class Operation
-    {
-        public OperationType OperationType { get; private set; }
-        public int? Value { get; private set; }
-        public int Index { get; private set; }
-
-        public Operation(OperationType type, int index, int? value = null)
-        {
-            OperationType = type;
-            Index = index;
-            Value = value;
-        }
-    }
-
-    public enum OperationType
-    {
-        Insert,
-        Delete
-    }
-
-    public class Request
-    {
-        public int ClientId { get; private set; }
-        //TODO: add state vector property
-        public Operation Operation { get; private set; }
-        //TODO: add operation priority property
-
-        public Request(int clientId, Operation operation)
-        {
-            ClientId = clientId;
-            Operation = operation;
-        }
-    }
+    
 }
