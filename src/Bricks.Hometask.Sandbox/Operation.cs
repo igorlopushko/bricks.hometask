@@ -1,13 +1,10 @@
-using System;
-using System.Collections.Generic;
-
 namespace Bricks.Hometask.Sandbox
 {
     public class Operation : IOperation
     {
-        public OperationType OperationType { get; private set; }
-        public int? Value { get; private set; }
-        public int Index { get; private set; }
+        public OperationType OperationType { get; }
+        public int? Value { get; }
+        public int Index { get; }
 
         public Operation(OperationType type, int index, int? value = null)
         {
@@ -20,22 +17,7 @@ namespace Bricks.Hometask.Sandbox
     public enum OperationType
     {
         Insert,
+        Update,
         Delete
-    }
-
-    public class OperationSentEventArgs : EventArgs
-    {
-        public readonly IEnumerable<IOperation> Operations;
-        public readonly int ClientId;
-        public readonly int Revision;
-        public readonly bool IsAcknowledged;
-
-        public OperationSentEventArgs(int clientId, int revision,  IEnumerable<IOperation> operations, bool isAcknowledged = false)
-        {
-            ClientId = clientId;
-            Revision = revision;
-            Operations = operations;
-            IsAcknowledged = isAcknowledged;
-        }
     }
 }

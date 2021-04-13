@@ -6,8 +6,7 @@ namespace Bricks.Hometask.Sandbox
     public class Request : IRequest
     {
         private List<IOperation> _operations;
-
-        /// <summary>Gets collection of operations./// </summary>
+        
         public IEnumerable<IOperation> Operations
         {
             get
