@@ -1,3 +1,5 @@
+using System;
+using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,13 +13,13 @@ namespace Bricks.Hometask.Sandbox
         private readonly ReaderWriterLockSlim _slimLocker;
         
         private IList<int> _data;
-        private bool _isRunning;
-        private ConcurrentQueue<Request> _awatingOperations;
-        private ConcurrentQueue<IOperation> _operationsBuffer;
-        private ConcurrentDictionary<int, IEnumerable<IOperation>> _receivedOperations;
         private int _revision;
-        private CancellationTokenSource _tokenSource;
-        private CancellationToken _sendToServerCancellationToken;
+        private bool _isRunning;
+        private readonly ConcurrentQueue<IRequest> _awaitingOperations;
+        private readonly ConcurrentQueue<IRequest> _receivedOperations;
+        private readonly ConcurrentQueue<IOperation> _operationsBuffer;
+        private readonly CancellationTokenSource _tokenSource;
+        private readonly CancellationToken _sendToServerCancellationToken;
         
         public int ClientId { get; }
         
@@ -64,9 +66,9 @@ namespace Bricks.Hometask.Sandbox
         {
             ClientId = clientId;
             _data = new List<int>();
-            _awatingOperations = new ConcurrentQueue<Request>();
+            _awaitingOperations = new ConcurrentQueue<IRequest>();
             _operationsBuffer = new ConcurrentQueue<IOperation>();
-            _receivedOperations = new ConcurrentDictionary<int, IEnumerable<IOperation>>();
+            _receivedOperations = new ConcurrentQueue<IRequest>();
             _slimLocker = new ReaderWriterLockSlim();
 
             _tokenSource = new CancellationTokenSource();
@@ -99,7 +101,7 @@ namespace Bricks.Hometask.Sandbox
             
             while (_isRunning)
             {
-                // infinity loop to proceed data. 
+                // infinity loop to proceed data
                System.Console.WriteLine($"Client with ID: '{ClientId}' is running");
 
                // emulate real world operation
@@ -121,87 +123,72 @@ namespace Bricks.Hometask.Sandbox
             ProcessOperation(operation);
             
             // logging
-            System.Console.WriteLine($"Operation received at Client ID: '{ClientId}', type: '{operation.OperationType}'");
+            System.Console.WriteLine($"Operation occured at Client ID: '{ClientId}', type: '{operation.OperationType}'");
         }
         
-        public void AcknowledgeOperation(int revision)
+        public void ReceiveOperationsFromServer(IRequest request)
         {
-            _slimLocker.EnterWriteLock();
-            try
-            {
-                _revision = revision;
-                _awatingOperations.Clear();
-            }
-            finally
-            {
-                _slimLocker.ExitWriteLock();
-            }
-        }
-        
-        public void ReceiveOperationsFromServer(int revision, IEnumerable<IOperation> operations)
-        {
-            _receivedOperations.TryAdd(revision, operations.ToList());
-                
-            //TODO: transform operations in awaiting operations over the received messages
-            //TODO: transform operations in buffer over the received messages
-            //TODO: lock is required for transformation and data update
-
-            ApplyOperations(operations.ToList());
+            _receivedOperations.Enqueue(request);
         }
         
         private void SendOperationsToServer(CancellationToken token)
         {
             while (_isRunning)
             {
-                _slimLocker.EnterUpgradeableReadLock();
-                try
+                while (!_receivedOperations.IsEmpty)
                 {
-                    // awaiting acknowledgement from server
-                    if (_awatingOperations.Count != 0)
+                    if (!_receivedOperations.TryDequeue(out IRequest r)) continue;
+                    
+                    // check if request is acknowledgment for the awaiting operation 
+                    if (r.IsAcknowledged && 
+                        r.ClientId == ClientId &&
+                        _awaitingOperations.Count() != 0 &&
+                        r.Operations.All(o1 => _awaitingOperations.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
                     {
-                        //TODO: increase timout on each iteration
+                        _awaitingOperations.Clear();
+                        _revision = r.Revision;
                         continue;
                     }
-
-                    // do nothing if buffer is empty
-                    if (_operationsBuffer.Count == 0)
+                    
+                    //TODO: transform operations in buffer over the received messages
+                    IEnumerable<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations);
+                    _operationsBuffer.Clear();
+                    foreach (var operation in operations)
                     {
-                        continue;
+                        _operationsBuffer.Enqueue(operation);
                     }
-
-                    // if no subscriber (server) attached do not send operations
-                    if (OperationSent != null)
-                    {
-                        // send new bunch of operations from buffer if no awaiting operations
-                        Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
-                        OperationSent.Invoke(request);
-                        
-                        _slimLocker.EnterWriteLock();
-                        try
-                        {
-                            _awatingOperations.Enqueue(request);
-                            _operationsBuffer.Clear();
-                        }
-                        finally
-                        {
-                            _slimLocker.ExitWriteLock();
-                        }
-                    }
+                    
+                    ApplyOperations(r.Operations.ToList());
                 }
-                finally
+
+                // awaiting acknowledgement from server
+                if (_awaitingOperations.IsEmpty)
                 {
-                    _slimLocker.ExitUpgradeableReadLock();
+                    //TODO: increase timout on each iteration
+                    continue;
                 }
+
+                // do nothing if buffer is empty
+                if (_operationsBuffer.IsEmpty) continue;
+
+                // if no subscriber (server) attached do not send operations
+                if (OperationSent == null) continue;
+                
+                // send new bunch of operations from buffer if no awaiting operations
+                Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
+                OperationSent.Invoke(request);
+
+                _awaitingOperations.Enqueue(request);
+                _operationsBuffer.Clear();
 
                 //TODO: add timeout
             }
 
+            if (!token.IsCancellationRequested) return;
+            
             // clear queues if client is shut down
-            if (token.IsCancellationRequested)
-            {
-                _awatingOperations.Clear();
-                _operationsBuffer.Clear();
-            }
+            _awaitingOperations.Clear();
+            _operationsBuffer.Clear();
         }
 
         private void ApplyOperations(IEnumerable<IOperation> operations)
@@ -211,112 +198,37 @@ namespace Bricks.Hometask.Sandbox
                 switch (operation.OperationType)
                 {
                     case OperationType.Insert:
-                        if (operation.Index > -1 && operation.Index <= _data.Count)
-                        {
-                            _slimLocker.EnterWriteLock();
-                            try
-                            {
-                                _data.Insert(operation.Index, operation.Value.Value);
-                            }
-                            finally
-                            {
-                                _slimLocker.ExitWriteLock();
-                            }
-                        }
+                        OperationProcessor.InsertOperation(_data, operation);
                         break;
                     case OperationType.Delete:
-                        if (_data.Count > 0 && operation.Index > -1 && operation.Index < _data.Count)
-                        {
-                            _slimLocker.EnterWriteLock();
-                            try
-                            {
-                                _data.RemoveAt(operation.Index);
-                            }
-                            finally
-                            {
-                                _slimLocker.ExitWriteLock();
-                            }
-                        }
+                        OperationProcessor.DeleteOperation(_data, operation);
                         break;
+                    default:
+                        throw new ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
                 }
             }
         }
         
         private void ProcessOperation(IOperation operation)
         {
-            _slimLocker.EnterUpgradeableReadLock();
-            try
+            switch (operation.OperationType)
             {
-                switch (operation.OperationType)
-                {
-                    case OperationType.Insert:
-                        if (operation.Index > -1 && operation.Index <= _data.Count)
-                        {
-                            _slimLocker.EnterWriteLock();
-                            try
-                            {
-                                InsertOperation(operation);
-                            }
-                            finally
-                            {
-                                _slimLocker.ExitWriteLock();
-                            }
-                        }
-                        break;
-                    case OperationType.Update:
-                        if (_data.Count > 0 && operation.Index > -1 && operation.Index < _data.Count)
-                        {
-                            _slimLocker.EnterWriteLock();
-                            try
-                            {
-                                UpdateOperation(operation);
-                            }
-                            finally
-                            {
-                                _slimLocker.ExitWriteLock();
-                            }
-                        }
-                        break;
-                    case OperationType.Delete:
-                        if (_data.Count > 0 && operation.Index > -1 && operation.Index < _data.Count)
-                        {
-                            _slimLocker.EnterWriteLock();
-                            try
-                            {
-                                DeleteOperation(operation);
-                            }
-                            finally
-                            {
-                                _slimLocker.ExitWriteLock();
-                            }
-                        }
-                        break;
-                }
+                case OperationType.Insert:
+                    OperationProcessor.InsertOperation(_data, operation);
+                    _operationsBuffer.Enqueue(operation);
+                    break;
+                case OperationType.Update:
+                    OperationProcessor.UpdateOperation(_data, operation);
+                    _operationsBuffer.Enqueue(new Operation(OperationType.Delete, operation.Index));
+                    _operationsBuffer.Enqueue(new Operation(OperationType.Insert, operation.Index, operation.Value));
+                    break;
+                case OperationType.Delete:
+                    OperationProcessor.DeleteOperation(_data, operation);
+                    _operationsBuffer.Enqueue(operation);
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException($"Operation {operation.OperationType} is not supported");
             }
-            finally
-            {
-                _slimLocker.ExitUpgradeableReadLock();
-            }
-        }
-
-        private void InsertOperation(IOperation operation)
-        {
-            _data.Insert(operation.Index, operation.Value.Value);
-            _operationsBuffer.Enqueue(operation);
-        }
-
-        private void UpdateOperation(IOperation operation)
-        {
-            _data.RemoveAt(operation.Index);
-            _operationsBuffer.Enqueue(new Operation(OperationType.Delete, operation.Index));
-            _data.Insert(operation.Index, operation.Value.Value);
-            _operationsBuffer.Enqueue(new Operation(OperationType.Insert, operation.Index, operation.Value));
-        }
-        
-        private void DeleteOperation(IOperation operation)
-        {
-            _data.RemoveAt(operation.Index);
-            _operationsBuffer.Enqueue(operation);
         }
     }
 }

@@ -50,6 +50,7 @@ namespace Bricks.Hometask.Sandbox
                 }
             }));
             
+            
             Thread.Sleep(Timeout.FiveSeconds);
             
             //TODO: add server alive check before register new client
@@ -76,6 +77,30 @@ namespace Bricks.Hometask.Sandbox
             server.UnregisterClient(client2);
             client3.Stop();
             server.UnregisterClient(client3);
+            
+            Console.WriteLine();
+            Console.WriteLine("Client 1:");
+            foreach (var d in client1.Data)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine();
+
+            Console.WriteLine();
+            Console.WriteLine("Client 2:");
+            foreach (var d in client2.Data)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine();
+
+            Console.WriteLine();
+            Console.WriteLine("Client 3:");
+            foreach (var d in client3.Data)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine();
             
             Console.WriteLine("Server is ready to be stopped");
             server.Stop();

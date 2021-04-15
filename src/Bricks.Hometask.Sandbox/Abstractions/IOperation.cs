@@ -10,5 +10,8 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Gets operation index.</summary>
         public int Index { get; }
+        
+        /// <summary>Gets operation timestamp.</summary>
+        public long Timestamp { get; }
     }
 }

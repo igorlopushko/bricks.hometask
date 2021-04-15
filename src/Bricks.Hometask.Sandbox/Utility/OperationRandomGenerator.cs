@@ -1,3 +1,5 @@
+using System;
+
 namespace Bricks.Hometask.Sandbox
 {
     public static class OperationRandomGenerator
@@ -12,11 +14,19 @@ namespace Bricks.Hometask.Sandbox
                 case OperationType.Insert:
                     return new Operation(OperationType.Insert, index, RandomGenerator.GetNumber(int.MinValue, int.MaxValue));
                 case OperationType.Update:
+                    if (collectionCount == 0)
+                    {
+                        return new Operation(OperationType.Insert, index, RandomGenerator.GetNumber(int.MinValue, int.MaxValue));
+                    }
                     return new Operation(OperationType.Update, index, RandomGenerator.GetNumber(int.MinValue, int.MaxValue));
                 case OperationType.Delete:
+                    if (collectionCount == 0)
+                    {
+                        return new Operation(OperationType.Insert, index, RandomGenerator.GetNumber(int.MinValue, int.MaxValue));
+                    }
                     return new Operation(OperationType.Delete, index);
                 default:
-                    return new Operation(OperationType.Insert, index, RandomGenerator.GetNumber(int.MinValue, int.MaxValue));
+                    throw new ArgumentOutOfRangeException($"Operation {type} is not supported");
             }
         }
     }

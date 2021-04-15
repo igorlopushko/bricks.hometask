@@ -26,14 +26,9 @@ namespace Bricks.Hometask.Sandbox
         /// <param name="revision">Last synced revision number.</param>
         public void SyncData(IEnumerable<int> data, int revision);
         
-        /// <summary>Acknowledges the awating operation and receives last synced revision number.</summary>
-        /// <param name="revision">Last synced revision number.</param>
-        public void AcknowledgeOperation(int revision);
-        
         /// <summary>Receives operations from server to sync the state.</summary>
-        /// <param name="revision">Last synced revision number.</param>
-        /// <param name="operations">List of operations to be applied over the data.</param>
-        public void ReceiveOperationsFromServer(int revision, IEnumerable<IOperation> operations);
+        /// <param name="request">Request operation entity.</param>
+        public void ReceiveOperationsFromServer(IRequest request);
         
         /// <summary>Receives operation from external world.</summary>
         /// <param name="operation">Operation instance to be processed.</param>
