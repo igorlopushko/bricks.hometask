@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,7 +9,6 @@ namespace Bricks.Hometask.Sandbox
 {
     public class Server : IServer
     {
-        private readonly object _locker = new object();
         private readonly ReaderWriterLockSlim _slimLocker;
         
         private readonly ConcurrentQueue<IRequest> _awatingRequests;
@@ -21,9 +18,8 @@ namespace Bricks.Hometask.Sandbox
         private bool _isRunning;
         private int _revision;
         private CancellationTokenSource _tokenSource;
-        private CancellationToken _processOperationsCancellationToken;
-
-        /// <summary>Gets current server state.</summary>
+        private CancellationToken _processRequestsCancellationToken;
+                
         public IEnumerable<int> Data
         {
             get
@@ -43,7 +39,6 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        /// <summary>Gets current server revision number.</summary>
         public int Revision
         {
             get
@@ -59,6 +54,11 @@ namespace Bricks.Hometask.Sandbox
                 }
             }
         }
+
+        public bool IsAlive
+        {
+            get { return _isRunning; }
+        }
         
         /// <summary>Constructor.</summary>
         public Server()
@@ -71,13 +71,13 @@ namespace Bricks.Hometask.Sandbox
             
             _slimLocker = new ReaderWriterLockSlim();
             _tokenSource = new CancellationTokenSource();
-            _processOperationsCancellationToken = new CancellationToken();
+            _processRequestsCancellationToken = new CancellationToken();
         }
 
         public void InitializeData()
         {
             //TODO: initialize data to start with not empty document
-            throw new NotImplementedException();
+            throw new System.NotImplementedException();
         }
 
         /// <summary>Runs server.</summary>
@@ -86,14 +86,14 @@ namespace Bricks.Hometask.Sandbox
             _isRunning = true;
             
             // run async job to process awaiting operations
-            Task.Run(() => ProcessOperations(_processOperationsCancellationToken));
+            Task.Run(() => ProcessRequests(_processRequestsCancellationToken));
             
             System.Console.WriteLine($"Server has been started");
             
             while (_isRunning)
             {
                 // infinity loop to proceed data. 
-                Console.WriteLine("Server is running");
+                System.Console.WriteLine("Server is running");
                 
                 // emulate real world delays
                 Thread.Sleep(Timeout.OneSecond);
@@ -103,20 +103,30 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Stops server's execution.</summary>
         public void Stop()
         {
+            if(!_isRunning) System.Console.WriteLine("Server is already stopped");
+
+            if (!_awatingRequests.IsEmpty)
+            {
+                System.Console.WriteLine("Trying to stop server");
+                while(!_awatingRequests.IsEmpty)
+                {
+                    System.Console.Write(".");
+                    Thread.Sleep(10);
+                }
+            }
+
             _isRunning = false;
 
             // unsubscribe all clients
-            foreach (var client in _clients.Values)
+            foreach (IClient c in _clients.Values)
             {
-                client.OperationSent -= ReceiveClientRequestEventHandler;
+                c.OperationSent -= ReceivedClientRequestEventHandler;
             }
             _clients.Clear();
             
             System.Console.WriteLine($"Server has been stopped");
         }
-        
-        /// <summary>Registers a new client within the server.</summary>
-        /// <param name="client">Client object instance.</param>
+                
         public void RegisterClient(IClient client)
         {
             // do not allow to register new clients if server is not running
@@ -125,52 +135,50 @@ namespace Bricks.Hometask.Sandbox
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                Console.WriteLine($"Client with ID: {client.ClientId} is already registered on the server");
+                System.Console.WriteLine($"Client with ID: {client.ClientId} is already registered on the server");
                 
                 return;
             }
 
             if (_clients.TryAdd(client.ClientId, client))
             {
-                client.OperationSent += ReceiveClientRequestEventHandler;
-            
+                client.OperationSent += ReceivedClientRequestEventHandler;
+
                 // logging
-                Console.WriteLine($"Server has registered Client with ID: '{client.ClientId}'");                
+                System.Console.WriteLine($"Server has registered Client with ID: '{client.ClientId}'");                
             }
             else
             {
                 // logging
-                Console.WriteLine($"Server can't registered Client with ID: '{client.ClientId}'");
+                System.Console.WriteLine($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
-
-        /// <summary>Unregisters a client within the server.</summary>
-        /// <param name="client">Client object instance.</param>
+                
         public void UnregisterClient(IClient client)
         {
             if (!_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                Console.WriteLine($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
+                System.Console.WriteLine($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
                 
                 return;
             }
 
             if (_clients.TryRemove(client.ClientId, out IClient removedClient))
             {
-                removedClient.OperationSent -= ReceiveClientRequestEventHandler;
+                removedClient.OperationSent -= ReceivedClientRequestEventHandler;
 
                 // logging
-                Console.WriteLine($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
+                System.Console.WriteLine($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
             }
             else
             {
                 // logging
-                Console.WriteLine($"Server can't unregister Client with ID: '{client.ClientId}'");
+                System.Console.WriteLine($"Server can't unregister Client with ID: '{client.ClientId}'");
             }
         }
 
-        private void ReceiveClientRequestEventHandler(Request request)
+        private void ReceivedClientRequestEventHandler(Request request)
         {
             _awatingRequests.Enqueue(request);
             
@@ -178,10 +186,10 @@ namespace Bricks.Hometask.Sandbox
             StringBuilder str = new StringBuilder($"Server received operation from Client ID: '{request.ClientId}'");
             str.Append($", revision: '{request.Revision}'");
             str.Append($", operations count: '{request.Operations.Count()}'");
-            Console.WriteLine(str.ToString());
+            System.Console.WriteLine(str.ToString());
         }
 
-        private void ProcessOperations(CancellationToken token)
+        private void ProcessRequests(CancellationToken token)
         {
             // infinite loop to process incoming client requests with operations 
             while (_isRunning)
@@ -189,53 +197,24 @@ namespace Bricks.Hometask.Sandbox
                 // process all incoming request from the queue
                 while (!_awatingRequests.IsEmpty)
                 {
-                    IRequest request;
-
-                    if (_awatingRequests.TryDequeue(out request))
+                    if (_awatingRequests.TryDequeue(out IRequest request))
                     {
-                        if (request.Revision < _revision)
-                        {
-                            int requestRevision = request.Revision;
-                            var logOperations = _revisionLog
-                                .Where(pair => pair.Key >= requestRevision)
-                                .OrderBy(pair => pair.Key);
+                        // transform request operations according to the current server state
+                        request = TransformRequest(request);
 
-                            foreach (var (revision, operations) in logOperations)
-                            {
-                                var transformedOperations = OperationTransformer.Transform(request.Operations, operations);
-                                request = new Request(request.ClientId, revision, transformedOperations);
-                            }
-                        }
-                        
                         // apply operations over the server data document
-                        foreach (var operation in request.Operations)
-                        {
-                            switch (operation.OperationType)
-                            {
-                                case OperationType.Insert:
-                                    OperationProcessor.InsertOperation(_data, operation);
-                                    break;
-                                case OperationType.Delete:
-                                    OperationProcessor.DeleteOperation(_data, operation);
-                                    break;
-                                default:
-                                    throw new ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
-                            }    
-                        }
+                        ApplyOperations(request);
                         
                         // save operations to the server revision log
                         _revisionLog.TryAdd(_revision, request.Operations.ToList());
-                        
-                        // send acknowledgment to client
-                        _clients.Values
-                            .FirstOrDefault(i => i.ClientId == request.ClientId)?
-                            .ReceiveOperationsFromServer(new Request(request.ClientId, _revision + 1, request.Operations, true));
+
+                        // acknowledge the request
+                        IRequest acknowledgedRequest = new Request(request.ClientId, _revision + 1, request.Operations.ToList(), true);
                         
                         // broadcast operations to other clients
-                        foreach (var client in _clients.Values)
-                        {
-                            if (client.ClientId == request.ClientId) continue;
-                            client.ReceiveOperationsFromServer(new Request( request.ClientId,_revision + 1, request.Operations.ToList()));
+                        foreach (IClient c in _clients.Values)
+                        {                            
+                            c.ReceiveOperationsFromServer(acknowledgedRequest);
                         }
                         
                         // increment local revision
@@ -248,6 +227,50 @@ namespace Bricks.Hometask.Sandbox
             if (token.IsCancellationRequested)
             {
                 _awatingRequests.Clear();
+            }
+        }
+
+        private IRequest TransformRequest(IRequest request)
+        {
+            if (request.Revision == _revision) return request;
+            if (request.Revision > _revision) throw new System.ApplicationException("Request revision is ahead of server revision.");
+
+            IRequest tempRequest = request;
+            
+            // get operations from revision log since request revision number
+            var logOperations = _revisionLog
+                .Where(pair => pair.Key >= tempRequest.Revision)
+                .OrderBy(pair => pair.Key).ToList();
+
+            List<IOperation> transformedOperations = new List<IOperation>();
+            transformedOperations.AddRange(tempRequest.Operations);
+
+            foreach (var (revision, operations) in logOperations)
+            {
+                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
+                transformedOperations.Clear();
+                transformedOperations.AddRange(OperationTransformer.Transform(transformedOperations, operations));
+                tempRequest = new Request(tempRequest.ClientId, revision, transformedOperations);
+            }
+
+            return tempRequest;
+        }
+
+        private void ApplyOperations(IRequest request)
+        {
+            foreach (IOperation operation in request.Operations)
+            {
+                switch (operation.OperationType)
+                {
+                    case OperationType.Insert:
+                        OperationProcessor.InsertOperation(_data, operation);
+                        break;
+                    case OperationType.Delete:
+                        OperationProcessor.DeleteOperation(_data, operation);
+                        break;
+                    default:
+                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
+                }
             }
         }
     }

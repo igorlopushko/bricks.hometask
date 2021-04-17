@@ -1,4 +1,3 @@
-using System;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -11,9 +10,11 @@ namespace Bricks.Hometask.Sandbox
             if (a.Count() == 0) return new List<IOperation>();
             List<IOperation> result = new List<IOperation>(a.ToArray());
             
-            foreach (var operationB in b)
+            foreach (IOperation operationB in b)
             {
-                foreach (var operationA in a)
+                List<IOperation> temp = new List<IOperation>();
+
+                foreach (IOperation operationA in result)
                 {
                     IOperation transformedOperation = null;
                     
@@ -35,16 +36,14 @@ namespace Bricks.Hometask.Sandbox
                         transformedOperation = TransformDeleteDelete(operationA, operationB);
                     }
 
-                    if (transformedOperation == null)
+                    if (transformedOperation != null)
                     {
-                        result.RemoveAt(result.IndexOf(operationA));
-                    }
-                    else if (!transformedOperation.Equals(operationA))
-                    {
-                        result[result.IndexOf(operationA)] = new Operation(transformedOperation.OperationType,
-                            transformedOperation.Index, transformedOperation.Value, transformedOperation.Timestamp);
+                        temp.Add(transformedOperation);
                     }
                 }
+
+                result.Clear();
+                result.AddRange(temp);
             }
 
             return result;
@@ -57,7 +56,7 @@ namespace Bricks.Hometask.Sandbox
         private static IOperation TransformInsertInsert(IOperation o1, IOperation o2)
         {
             //TODO: reverse > in timestamp?
-            if (o1.Index < o2.Index || o1.Index == o2.Index && o1.Timestamp > o2.Timestamp)
+            if (o1.Index < o2.Index || o1.Index == o2.Index && o1.Timestamp < o2.Timestamp)
             {
                 // Tii(Ins[3, "a"], Ins[4, "b"]) -> Ins[3, "a"]
                 return o1;
@@ -74,7 +73,7 @@ namespace Bricks.Hometask.Sandbox
         private static IOperation TransformInsertDelete(IOperation o1, IOperation o2)
         {
             //TODO: reverse > in timestamp?
-            if (o1.Index <= o2.Index || o1.Index == o2.Index && o1.Timestamp > o2.Timestamp)
+            if (o1.Index <= o2.Index || o1.Index == o2.Index && o1.Timestamp < o2.Timestamp)
             {
                 // Tid(Ins[3, "a"], Del[4]) -> Ins[3, "a"]
                 return o1;

@@ -10,102 +10,104 @@ namespace Bricks.Hometask.Sandbox
     {
         static void Main(string[] args)
         {
-            int operationsCount = 10;
-            List<Task> tasks = new List<Task>();
+            int operationsCount = 5;
+            int numberOfClients = 3;
+            List<IClient> clients = new List<IClient>();
+
+            List<Task> clientTasks = new List<Task>();
             Server server = new Server();
             
             Task serverTask = Task.Run(() => server.Run());
+            //tasks.Add(serverTask);
 
-            //TODO: add server alive check before register new client
-            Client client1 = new Client(1);
-            server.RegisterClient(client1);
-            Task client1Task = Task.Run(() => client1.Run());
-            tasks.Add(Task.Run(() =>
+            // spin till the server is up and running
+            if (!server.IsAlive)
             {
-                for (int i = 0; i < operationsCount; i++)
+                Console.WriteLine();
+                Console.WriteLine("Wait till the server is up and running");
+
+                while(!server.IsAlive)
                 {
-                    IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client1.Data.Count());
-                    client1.PushOperation(operation);
-                    
-                    //TODO: add some random delay
-                    Thread.Sleep(RandomGenerator.GetDelay(100, 3000));
+                    Console.WriteLine(".");
+                    Thread.Sleep(10);
                 }
-            }));
-            
-            Thread.Sleep(Timeout.TwoSeconds);
-            
-            //TODO: add server alive check before register new client
-            Client client2 = new Client(2);
-            server.RegisterClient(client2);
-            Task client2Task = Task.Run(() => client2.Run());
-            tasks.Add(Task.Run(() =>
-            {
-                for (int i = 0; i < operationsCount; i++)
-                {
-                    IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client2.Data.Count());
-                    client2.PushOperation(operation);
-                    
-                    //TODO: add some random delay
-                    Thread.Sleep(RandomGenerator.GetDelay(300, 500));
-                }
-            }));
-            
-            
-            Thread.Sleep(Timeout.FiveSeconds);
-            
-            //TODO: add server alive check before register new client
-            Client client3 = new Client(3);
-            server.RegisterClient(client3);
-            Task client3Task = Task.Run(() => client3.Run());
-            tasks.Add(Task.Run(() =>
-            {
-                for (int i = 0; i < operationsCount; i++)
-                {
-                    IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client3.Data.Count());
-                    client3.PushOperation(operation);
-                    
-                    //TODO: add some random delay
-                    Thread.Sleep(RandomGenerator.GetDelay(250, 750));
-                }
-            }));
-
-            Task.WaitAll(tasks.ToArray());
-            
-            client1.Stop();
-            server.UnregisterClient(client1);
-            client2.Stop();
-            server.UnregisterClient(client2);
-            client3.Stop();
-            server.UnregisterClient(client3);
-            
-            Console.WriteLine();
-            Console.WriteLine("Client 1:");
-            foreach (var d in client1.Data)
-            {
-                Console.WriteLine(d);
+                Console.WriteLine();
             }
-            Console.WriteLine();
 
-            Console.WriteLine();
-            Console.WriteLine("Client 2:");
-            foreach (var d in client2.Data)
+            for (int i = 0; i < numberOfClients; i++)
             {
-                Console.WriteLine(d);
-            }
-            Console.WriteLine();
+                Client client = new Client(i + 1);
+                clients.Add(client);
 
-            Console.WriteLine();
-            Console.WriteLine("Client 3:");
-            foreach (var d in client3.Data)
-            {
-                Console.WriteLine(d);
+                server.RegisterClient(client);
+                Task.Run(() => client.Run());
+                Task t = Task.Run(() => RunClient(client, operationsCount));
+                
+                clientTasks.Add(t);
+
+                Thread.Sleep(RandomGenerator.GetDelay(Timeout.OneSecond, Timeout.TwoSeconds));
             }
-            Console.WriteLine();
-            
-            Console.WriteLine("Server is ready to be stopped");
+
+
+            Task.WaitAll(clientTasks.ToArray());
+
             server.Stop();
-            
+
+            Task.WaitAll(serverTask);
+
+            foreach (IClient c in clients)
+            {
+                c.Stop();
+            }
+
+            foreach (IClient c in clients)
+            {
+                PrintClient(c);
+            }
+
+            PrintServer(server);
+
             Console.ReadLine();
+        }
+
+        private static void RunClient(IClient client, int operationsCount)
+        {
+            for (int i = 0; i < operationsCount; i++)
+            {
+                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client.Data.Count());
+                client.PushOperation(operation);
+
+                Thread.Sleep(Timeout.ClientOperationDelay);                
+            }
+
+            while (!client.CanBeStopped)
+            {
+                Thread.Sleep(1000);
+            }
+
+            Console.WriteLine($"Client '{client.ClientId}' finished processing");
+        }
+
+        private static void PrintClient(IClient client)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"Client with ID: '{client.ClientId}' data set:");
+            foreach (int d in client.Data)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine();
+        }
+
+        private static void PrintServer(IServer server)
+        {
+            Console.WriteLine();
+            Console.WriteLine($"Server data set:");
+            foreach (int d in server.Data)
+            {
+                Console.WriteLine(d);
+            }
+            Console.WriteLine();
         }
     }
 }

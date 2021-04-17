@@ -1,5 +1,3 @@
-using System;
-using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -57,6 +55,11 @@ namespace Bricks.Hometask.Sandbox
                 }
             }
         }
+
+        public bool CanBeStopped
+        {
+            get { return _operationsBuffer.IsEmpty && _awaitingOperations.IsEmpty && _receivedOperations.IsEmpty; }
+        }
         
         public event OperationSentEventHandler OperationSent;
         
@@ -111,6 +114,8 @@ namespace Bricks.Hometask.Sandbox
         
         public void Stop()
         {
+            if (!_isRunning) System.Console.WriteLine("Client is already stopped");
+
             _isRunning = false;
             _tokenSource.Cancel();
             
@@ -120,6 +125,8 @@ namespace Bricks.Hometask.Sandbox
 
         public void PushOperation(IOperation operation)
         {
+            if (!_isRunning) System.Console.WriteLine($"Client with ID: {ClientId} can't process operation, because client is not running");
+
             ProcessOperation(operation);
             
             // logging
@@ -128,6 +135,8 @@ namespace Bricks.Hometask.Sandbox
         
         public void ReceiveOperationsFromServer(IRequest request)
         {
+            if (!_isRunning) System.Console.WriteLine($"Client with ID: {ClientId} can't sync with the server, because client is not running");
+
             _receivedOperations.Enqueue(request);
         }
         
@@ -147,13 +156,16 @@ namespace Bricks.Hometask.Sandbox
                     {
                         _awaitingOperations.Clear();
                         _revision = r.Revision;
+
+                        // logging
+                        System.Console.WriteLine($"Client with ID: '{ClientId}' recieved ack message");
                         continue;
                     }
                     
-                    //TODO: transform operations in buffer over the received messages
-                    IEnumerable<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations);
+                    // transform operations in buffer over the received messages
+                    List<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
                     _operationsBuffer.Clear();
-                    foreach (var operation in operations)
+                    foreach (IOperation operation in operations)
                     {
                         _operationsBuffer.Enqueue(operation);
                     }
@@ -162,7 +174,7 @@ namespace Bricks.Hometask.Sandbox
                 }
 
                 // awaiting acknowledgement from server
-                if (_awaitingOperations.IsEmpty)
+                if (!_awaitingOperations.IsEmpty)
                 {
                     //TODO: increase timout on each iteration
                     continue;
@@ -193,7 +205,7 @@ namespace Bricks.Hometask.Sandbox
 
         private void ApplyOperations(IEnumerable<IOperation> operations)
         {
-            foreach (var operation in operations)
+            foreach (IOperation operation in operations)
             {
                 switch (operation.OperationType)
                 {
@@ -204,7 +216,7 @@ namespace Bricks.Hometask.Sandbox
                         OperationProcessor.DeleteOperation(_data, operation);
                         break;
                     default:
-                        throw new ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
+                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
                 }
             }
         }
@@ -227,7 +239,7 @@ namespace Bricks.Hometask.Sandbox
                     _operationsBuffer.Enqueue(operation);
                     break;
                 default:
-                    throw new ArgumentOutOfRangeException($"Operation {operation.OperationType} is not supported");
+                    throw new System.ArgumentOutOfRangeException($"Operation {operation.OperationType} is not supported");
             }
         }
     }

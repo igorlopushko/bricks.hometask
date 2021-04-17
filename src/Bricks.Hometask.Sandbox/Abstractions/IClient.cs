@@ -17,7 +17,10 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Runs client.</summary>
         public void Run();
-        
+
+        /// <summary>Determines whether the client can be stopped or not.</summary>
+        public bool CanBeStopped { get; }
+
         /// <summary>Stops client's execution.</summary>
         public void Stop();
         

@@ -10,6 +10,9 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Gets current server revision number.</summary>
         public int Revision { get; }
         
+        /// <summary>Gets boolean value which determines whether the server is alive or not.</summary>
+        public bool IsAlive { get; }
+
         /// <summary>Runs server.</summary>
         public void Run();
         
