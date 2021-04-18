@@ -1,7 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Threading;
 
 namespace Bricks.Hometask.Sandbox
 {
@@ -41,7 +40,7 @@ namespace Bricks.Hometask.Sandbox
             data[operation.Index] = operation.Value.Value;
         }
         
-        public static void DeleteOperation(IList<int> data,IOperation operation)
+        public static void DeleteOperation(IList<int> data, IOperation operation)
         {
             if (data.Count == 0 || operation.Index < 0 || operation.Index >= data.Count)
             {

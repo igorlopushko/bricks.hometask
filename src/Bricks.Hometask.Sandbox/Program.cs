@@ -10,7 +10,7 @@ namespace Bricks.Hometask.Sandbox
     {
         static void Main(string[] args)
         {
-            int operationsCount = 5;
+            int operationsCount = 3;
             int numberOfClients = 2;
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
@@ -36,7 +36,7 @@ namespace Bricks.Hometask.Sandbox
             //Task.WaitAll(serverTask);
 
             Console.WriteLine("Sync data");
-            Thread.Sleep(System.TimeSpan.FromSeconds(5));
+            Thread.Sleep(System.TimeSpan.FromSeconds(1));
             
             /*
             foreach (IClient c in clients)
@@ -44,15 +44,13 @@ namespace Bricks.Hometask.Sandbox
                 c.Stop();
             }
             */
-
-            /*
+            
             foreach (IClient c in clients)
             {
                 PrintClient(c);
             }
 
             PrintServer(server);
-            */
 
             Console.ReadLine();
         }
@@ -61,10 +59,10 @@ namespace Bricks.Hometask.Sandbox
         {            
             for (int i = 0; i < operationsCount; i++)
             {
-                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client.Data.Count());
+                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client.Data.Count(), client.ClientId);
                 client.PushOperation(operation);
 
-                Thread.Sleep(Timeout.ClientOperationDelay);                
+                Thread.Sleep(System.TimeSpan.FromMilliseconds(200));
             }
 
             Console.WriteLine($"Client '{client.ClientId}' finished processing");

@@ -13,5 +13,8 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Gets operation timestamp.</summary>
         public long Timestamp { get; }
+
+        /// <summary>Gets Client unique identifier.</summary>
+        public int ClientId { get; }
     }
 }

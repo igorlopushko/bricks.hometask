@@ -8,12 +8,14 @@ namespace Bricks.Hometask.Sandbox
         public int? Value { get; }
         public int Index { get; }
         public long Timestamp { get; }
+        public int ClientId { get; }
 
-        public Operation(OperationType type, int index, int? value = null, long? timestamp = null)
+        public Operation(OperationType type, int index, int clientId, int? value = null, long? timestamp = null)
         {
             OperationType = type;
             Index = index;
             Value = value;
+            ClientId = clientId;
             
             if (timestamp.HasValue)
             {

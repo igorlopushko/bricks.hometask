@@ -10,7 +10,7 @@ namespace Bricks.Hometask.Sandbox
     {
         private readonly object _locker = new object();
 
-        private readonly System.ConsoleColor _color = System.ConsoleColor.Blue;
+        private readonly System.ConsoleColor _color = System.ConsoleColor.White;
         private readonly ConsoleLogger _logger;
 
         private IList<int> _data;
@@ -67,6 +67,9 @@ namespace Bricks.Hometask.Sandbox
         
         public void SyncData(IEnumerable<int> data, int revision)
         {
+            // skip data sync if data is in initial state
+            if (data.Count() == 0 && revision == 0) return;
+
             lock(_locker)
             {
                 _data = new List<int>(data.ToList());
@@ -108,11 +111,9 @@ namespace Bricks.Hometask.Sandbox
         }
         
         public void ReceiveRequestsFromServer(IRequest request)
-        {
-            lock (_locker)
-            {
-                _receivedRequests.Enqueue(request);
-            }
+        {            
+            _receivedRequests.Enqueue(request);
+            _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
         }
         
         private void HandleReceivedRequests()
@@ -122,12 +123,9 @@ namespace Bricks.Hometask.Sandbox
 
             lock (_locker)
             {
-                // check if request is acknowledgment for the awaiting operation 
-                if (r.IsAcknowledged &&
-                    r.ClientId == ClientId &&
-                    _awaitingRequests.Count() != 0 &&
-                    r.Operations.All(o1 =>
-                        _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
+                // check if request is acknowledgment for the awaiting request 
+                if (r.IsAcknowledged && r.ClientId == ClientId && _awaitingRequests.Count() != 0 &&
+                    r.Operations.All(o1 => _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
                 {
                     _awaitingRequests.Clear();
                     _revision = r.Revision;
@@ -147,6 +145,8 @@ namespace Bricks.Hometask.Sandbox
                 }
 
                 ApplyOperations(r.Operations.ToList());
+
+                _logger.Log($"Client with ID: '{ClientId}' processed incoming request");
             }
         }
 
@@ -171,6 +171,8 @@ namespace Bricks.Hometask.Sandbox
 
                     _awaitingRequests.Enqueue(request);
                     _operationsBuffer.Clear();
+
+                    _logger.Log($"Client with ID: '{ClientId}' sent new request to the server");
                 }
             }
         }
@@ -203,8 +205,8 @@ namespace Bricks.Hometask.Sandbox
                     break;
                 case OperationType.Update:
                     OperationProcessor.UpdateOperation(_data, operation);
-                    _operationsBuffer.Enqueue(new Operation(OperationType.Delete, operation.Index));
-                    _operationsBuffer.Enqueue(new Operation(OperationType.Insert, operation.Index, operation.Value));
+                    _operationsBuffer.Enqueue(new Operation(OperationType.Delete, operation.Index, operation.ClientId));
+                    _operationsBuffer.Enqueue(new Operation(OperationType.Insert, operation.Index, operation.ClientId, operation.Value));
                     break;
                 case OperationType.Delete:
                     OperationProcessor.DeleteOperation(_data, operation);

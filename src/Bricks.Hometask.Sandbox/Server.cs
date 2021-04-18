@@ -96,9 +96,6 @@ namespace Bricks.Hometask.Sandbox
                 
         public void RegisterClient(IClient client)
         {
-            // do not allow to register new clients if server is not running
-            //if (!_isRunning) return;
-
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
@@ -179,8 +176,11 @@ namespace Bricks.Hometask.Sandbox
                     _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
-                    IRequest acknowledgedRequest = new Request(transformedRequest.ClientId, _revision + 1,
-                        transformedRequest.Operations.ToList(), true);
+                    IRequest acknowledgedRequest = new Request(
+                        transformedRequest.ClientId, 
+                        _revision + 1,
+                        transformedRequest.Operations.ToList(), 
+                        true);
 
                     // broadcast operations to other clients
                     foreach (IClient c in _clients.Values)
@@ -208,7 +208,7 @@ namespace Bricks.Hometask.Sandbox
             
             // get operations from revision log since request revision number
             var logOperations = _revisionLog
-                .Where(pair => pair.Key >= tempRequest.Revision)
+                .Where(pair => pair.Key > tempRequest.Revision)
                 .OrderBy(pair => pair.Key).ToList();
 
             List<IOperation> transformedOperations = new List<IOperation>();
@@ -218,7 +218,7 @@ namespace Bricks.Hometask.Sandbox
             {
                 List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
                 transformedOperations.Clear();
-                transformedOperations.AddRange(OperationTransformer.Transform(temp, operations));
+                transformedOperations.AddRange(temp);
                 tempRequest = new Request(tempRequest.ClientId, revision, transformedOperations);
             }
 
