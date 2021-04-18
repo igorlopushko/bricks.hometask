@@ -11,7 +11,7 @@ namespace Bricks.Hometask.Sandbox
         public int Revision { get; }
         
         /// <summary>Gets boolean value which determines whether the server is alive or not.</summary>
-        public bool IsAlive { get; }
+        //public bool IsAlive { get; }
 
         /// <summary>Runs server.</summary>
         public void Run();

@@ -8,7 +8,10 @@ namespace Bricks.Hometask.Sandbox
     {
         /// <summary>Gets client unique identifier.</summary>
         public int ClientId { get; }
-        
+
+        /// <summary>Gets boolean value which determines whether the client is alive or not.</summary>
+        //public bool IsAlive { get; }
+
         /// <summary>Gets current client state.</summary>
         public IEnumerable<int> Data { get; }
         
@@ -19,7 +22,7 @@ namespace Bricks.Hometask.Sandbox
         public void Run();
 
         /// <summary>Determines whether the client can be stopped or not.</summary>
-        public bool CanBeStopped { get; }
+        //public bool CanBeStopped { get; }
 
         /// <summary>Stops client's execution.</summary>
         public void Stop();
@@ -31,7 +34,7 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Receives operations from server to sync the state.</summary>
         /// <param name="request">Request operation entity.</param>
-        public void ReceiveOperationsFromServer(IRequest request);
+        public void ReceiveRequestsFromServer(IRequest request);
         
         /// <summary>Receives operation from external world.</summary>
         /// <param name="operation">Operation instance to be processed.</param>

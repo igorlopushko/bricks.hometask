@@ -11,9 +11,8 @@ namespace Bricks.Hometask.Sandbox
         static void Main(string[] args)
         {
             int operationsCount = 5;
-            int numberOfClients = 3;
+            int numberOfClients = 2;
             List<IClient> clients = new List<IClient>();
-
             List<Task> clientTasks = new List<Task>();
             Server server = new Server();
             
@@ -24,7 +23,7 @@ namespace Bricks.Hometask.Sandbox
             if (!server.IsAlive)
             {
                 Console.WriteLine();
-                Console.WriteLine("Wait till the server is up and running");
+                Console.WriteLine("Wait till the Server is up and running");
 
                 while(!server.IsAlive)
                 {
@@ -41,24 +40,26 @@ namespace Bricks.Hometask.Sandbox
 
                 server.RegisterClient(client);
                 Task.Run(() => client.Run());
-                Task t = Task.Run(() => RunClient(client, operationsCount));
+                Task t = Task.Run(() => PushOperationsToClient(client, operationsCount));
                 
                 clientTasks.Add(t);
-
-                Thread.Sleep(RandomGenerator.GetDelay(Timeout.OneSecond, Timeout.TwoSeconds));
             }
-
 
             Task.WaitAll(clientTasks.ToArray());
 
-            server.Stop();
+            //server.Stop();
 
-            Task.WaitAll(serverTask);
+            //Task.WaitAll(serverTask);
 
+            Console.WriteLine("Sync data");
+            Thread.Sleep(System.TimeSpan.FromSeconds(5));
+
+            /*
             foreach (IClient c in clients)
             {
                 c.Stop();
             }
+            */
 
             foreach (IClient c in clients)
             {
@@ -70,19 +71,14 @@ namespace Bricks.Hometask.Sandbox
             Console.ReadLine();
         }
 
-        private static void RunClient(IClient client, int operationsCount)
-        {
+        private static void PushOperationsToClient(IClient client, int operationsCount)
+        {            
             for (int i = 0; i < operationsCount; i++)
             {
                 IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client.Data.Count());
                 client.PushOperation(operation);
 
                 Thread.Sleep(Timeout.ClientOperationDelay);                
-            }
-
-            while (!client.CanBeStopped)
-            {
-                Thread.Sleep(1000);
             }
 
             Console.WriteLine($"Client '{client.ClientId}' finished processing");

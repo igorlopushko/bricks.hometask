@@ -9,8 +9,12 @@ namespace Bricks.Hometask.Sandbox
 {
     public class Server : IServer
     {
-        private readonly ReaderWriterLockSlim _slimLocker;
-        
+        private readonly ReaderWriterLockSlim _slimLocker = new ReaderWriterLockSlim();
+        private readonly ManualResetEvent _event = new ManualResetEvent(false);
+
+        private readonly System.ConsoleColor _color = System.ConsoleColor.Red;
+        private readonly ConsoleLogger _logger;
+
         private readonly ConcurrentQueue<IRequest> _awatingRequests;
         private readonly ConcurrentDictionary<int, List<IOperation>> _revisionLog;
         private readonly ConcurrentDictionary<int, IClient> _clients;
@@ -18,7 +22,7 @@ namespace Bricks.Hometask.Sandbox
         private bool _isRunning;
         private int _revision;
         private CancellationTokenSource _tokenSource;
-        private CancellationToken _processRequestsCancellationToken;
+        private CancellationToken _token;
                 
         public IEnumerable<int> Data
         {
@@ -57,7 +61,18 @@ namespace Bricks.Hometask.Sandbox
 
         public bool IsAlive
         {
-            get { return _isRunning; }
+            get
+            {
+                _slimLocker.EnterReadLock();
+                try
+                {
+                    return _isRunning;
+                }
+                finally
+                {
+                    _slimLocker.ExitReadLock();
+                }
+            }
         }
         
         /// <summary>Constructor.</summary>
@@ -68,74 +83,69 @@ namespace Bricks.Hometask.Sandbox
             _awatingRequests = new ConcurrentQueue<IRequest>();
             _revisionLog = new ConcurrentDictionary<int, List<IOperation>>();
             _revision = 0;
-            
-            _slimLocker = new ReaderWriterLockSlim();
-            _tokenSource = new CancellationTokenSource();
-            _processRequestsCancellationToken = new CancellationToken();
-        }
+            _logger = new ConsoleLogger(_color);
 
-        public void InitializeData()
-        {
-            //TODO: initialize data to start with not empty document
-            throw new System.NotImplementedException();
+            _tokenSource = new CancellationTokenSource();
+            _token = _tokenSource.Token;
         }
 
         /// <summary>Runs server.</summary>
         public void Run()
         {
-            _isRunning = true;
+            //_isRunning = true;
             
             // run async job to process awaiting operations
-            Task.Run(() => ProcessRequests(_processRequestsCancellationToken));
+            Task.Run(() => ProcessRequests(_token));
             
-            System.Console.WriteLine($"Server has been started");
+            //System.Console.WriteLine($"Server has been started.");
             
-            while (_isRunning)
+            while (true)
             {
                 // infinity loop to proceed data. 
-                System.Console.WriteLine("Server is running");
+                //System.Console.WriteLine("Server is running");
                 
                 // emulate real world delays
-                Thread.Sleep(Timeout.OneSecond);
+                //Thread.Sleep(Timeout.OneSecond);
             }
         }
 
         /// <summary>Stops server's execution.</summary>
         public void Stop()
         {
-            if(!_isRunning) System.Console.WriteLine("Server is already stopped");
-
-            if (!_awatingRequests.IsEmpty)
-            {
-                System.Console.WriteLine("Trying to stop server");
-                while(!_awatingRequests.IsEmpty)
-                {
-                    System.Console.Write(".");
-                    Thread.Sleep(10);
-                }
-            }
-
-            _isRunning = false;
+            //if(!_isRunning) System.Console.WriteLine("Server is already stopped");
 
             // unsubscribe all clients
             foreach (IClient c in _clients.Values)
             {
                 c.OperationSent -= ReceivedClientRequestEventHandler;
             }
-            _clients.Clear();
+
+            // wait untill all awaiting requests are processed.
+            if (!_awatingRequests.IsEmpty)
+            {
+                _logger.Log("Trying to stop server. Wait untill all awaiting requests are processed.");
+                while(!_awatingRequests.IsEmpty)
+                {
+                    Thread.Sleep(10);
+                }
+            }
             
-            System.Console.WriteLine($"Server has been stopped");
+            _clients.Clear();
+            _tokenSource.Cancel();
+            _isRunning = false;
+
+            _logger.Log($"Server has been stopped.");
         }
                 
         public void RegisterClient(IClient client)
         {
             // do not allow to register new clients if server is not running
-            if (!_isRunning) return;
+            //if (!_isRunning) return;
 
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                System.Console.WriteLine($"Client with ID: {client.ClientId} is already registered on the server");
+                _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
                 
                 return;
             }
@@ -143,14 +153,15 @@ namespace Bricks.Hometask.Sandbox
             if (_clients.TryAdd(client.ClientId, client))
             {
                 client.OperationSent += ReceivedClientRequestEventHandler;
+                client.SyncData(this.Data, this.Revision);
 
-                // logging
-                System.Console.WriteLine($"Server has registered Client with ID: '{client.ClientId}'");                
+                // logging                
+                _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
             }
             else
             {
                 // logging
-                System.Console.WriteLine($"Server can't registered Client with ID: '{client.ClientId}'");
+                _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
                 
@@ -159,7 +170,7 @@ namespace Bricks.Hometask.Sandbox
             if (!_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                System.Console.WriteLine($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
+                _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
                 
                 return;
             }
@@ -169,62 +180,75 @@ namespace Bricks.Hometask.Sandbox
                 removedClient.OperationSent -= ReceivedClientRequestEventHandler;
 
                 // logging
-                System.Console.WriteLine($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
+                _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
             }
             else
             {
                 // logging
-                System.Console.WriteLine($"Server can't unregister Client with ID: '{client.ClientId}'");
+                _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
             }
         }
 
         private void ReceivedClientRequestEventHandler(Request request)
         {
-            _awatingRequests.Enqueue(request);
+            //_event.WaitOne();
+
+            _awatingRequests.Enqueue(request);            
             
             // logging
-            StringBuilder str = new StringBuilder($"Server received operation from Client ID: '{request.ClientId}'");
+            StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
             str.Append($", revision: '{request.Revision}'");
             str.Append($", operations count: '{request.Operations.Count()}'");
-            System.Console.WriteLine(str.ToString());
+            _logger.Log(str.ToString());            
         }
 
         private void ProcessRequests(CancellationToken token)
         {
+            _isRunning = true;
+
             // infinite loop to process incoming client requests with operations 
-            while (_isRunning)
+            while (!token.IsCancellationRequested)
             {
                 // process all incoming request from the queue
-                while (!_awatingRequests.IsEmpty)
+                //while (!_awatingRequests.IsEmpty)
+                //{
+                //_event.Reset();
+                if (!_awatingRequests.IsEmpty && _awatingRequests.TryDequeue(out IRequest request))
                 {
-                    if (_awatingRequests.TryDequeue(out IRequest request))
-                    {
-                        // transform request operations according to the current server state
-                        request = TransformRequest(request);
+                    // transform request operations according to the current server state
+                    IRequest transformedRequest = TransformRequest(request);
 
-                        // apply operations over the server data document
-                        ApplyOperations(request);
+                    // apply operations over the server data document
+                    ApplyOperations(transformedRequest);
                         
-                        // save operations to the server revision log
-                        _revisionLog.TryAdd(_revision, request.Operations.ToList());
+                    // save operations to the server revision log
+                    _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
-                        // acknowledge the request
-                        IRequest acknowledgedRequest = new Request(request.ClientId, _revision + 1, request.Operations.ToList(), true);
+                    // acknowledge the request
+                    IRequest acknowledgedRequest = new Request(transformedRequest.ClientId, _revision + 1, transformedRequest.Operations.ToList(), true);
                         
-                        // broadcast operations to other clients
-                        foreach (IClient c in _clients.Values)
-                        {                            
-                            c.ReceiveOperationsFromServer(acknowledgedRequest);
-                        }
-                        
-                        // increment local revision
-                        Interlocked.Increment(ref _revision);
+                    // broadcast operations to other clients
+                    foreach (IClient c in _clients.Values)
+                    {                            
+                        c.ReceiveRequestsFromServer(acknowledgedRequest);
+
+                        // logging
+                        _logger.Log($"Message is sent by Server to Client with ID: '{c.ClientId}'");
                     }
+                        
+                    // increment local revision
+                    Interlocked.Increment(ref _revision);
                 }
+                //_event.Set();
+
+                Thread.Sleep(System.TimeSpan.FromMilliseconds(10));
+                //}
             }
 
+            _logger.Log("Exit ProcessRequests");
+
             // clear request queue if server is shut down
-            if (token.IsCancellationRequested)
+            //if (token.IsCancellationRequested)
             {
                 _awatingRequests.Clear();
             }
@@ -249,7 +273,7 @@ namespace Bricks.Hometask.Sandbox
             {
                 List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
                 transformedOperations.Clear();
-                transformedOperations.AddRange(OperationTransformer.Transform(transformedOperations, operations));
+                transformedOperations.AddRange(OperationTransformer.Transform(temp, operations));
                 tempRequest = new Request(tempRequest.ClientId, revision, transformedOperations);
             }
 

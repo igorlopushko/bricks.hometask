@@ -54,9 +54,8 @@ namespace Bricks.Hometask.Sandbox
         /// <param name="o2">Operation with respect to which perform the transformation.</param>
         /// <returns>Transformed operation.</returns>
         private static IOperation TransformInsertInsert(IOperation o1, IOperation o2)
-        {
-            //TODO: reverse > in timestamp?
-            if (o1.Index < o2.Index || o1.Index == o2.Index && o1.Timestamp < o2.Timestamp)
+        {            
+            if (o1.Index < o2.Index || (o1.Index == o2.Index && o1.Timestamp < o2.Timestamp))
             {
                 // Tii(Ins[3, "a"], Ins[4, "b"]) -> Ins[3, "a"]
                 return o1;
@@ -71,9 +70,8 @@ namespace Bricks.Hometask.Sandbox
         /// <param name="o2">Operation with respect to which perform the transformation.</param>
         /// <returns>Transformed operation.</returns>
         private static IOperation TransformInsertDelete(IOperation o1, IOperation o2)
-        {
-            //TODO: reverse > in timestamp?
-            if (o1.Index <= o2.Index || o1.Index == o2.Index && o1.Timestamp < o2.Timestamp)
+        {            
+            if (o1.Index <= o2.Index)
             {
                 // Tid(Ins[3, "a"], Del[4]) -> Ins[3, "a"]
                 return o1;

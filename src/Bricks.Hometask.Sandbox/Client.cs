@@ -8,16 +8,20 @@ namespace Bricks.Hometask.Sandbox
 {
     public class Client : IClient
     {
-        private readonly ReaderWriterLockSlim _slimLocker;
-        
+        private readonly ReaderWriterLockSlim _slimLocker = new ReaderWriterLockSlim();
+        private readonly ManualResetEvent _event = new ManualResetEvent(false);
+
+        private readonly System.ConsoleColor _color = System.ConsoleColor.White;
+        private readonly ConsoleLogger _logger;
+
         private IList<int> _data;
         private int _revision;
         private bool _isRunning;
-        private readonly ConcurrentQueue<IRequest> _awaitingOperations;
-        private readonly ConcurrentQueue<IRequest> _receivedOperations;
+        private readonly ConcurrentQueue<IRequest> _awaitingRequests;
+        private readonly ConcurrentQueue<IRequest> _receivedRequests;
         private readonly ConcurrentQueue<IOperation> _operationsBuffer;
         private readonly CancellationTokenSource _tokenSource;
-        private readonly CancellationToken _sendToServerCancellationToken;
+        private readonly CancellationToken _token;
         
         public int ClientId { get; }
         
@@ -56,11 +60,29 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
+        /*
+        public bool IsAlive
+        {
+            get
+            {
+                _slimLocker.EnterReadLock();
+                try
+                {
+                    return _isRunning;
+                }
+                finally
+                {
+                    _slimLocker.ExitReadLock();
+                }
+            }
+        }
+
         public bool CanBeStopped
         {
-            get { return _operationsBuffer.IsEmpty && _awaitingOperations.IsEmpty && _receivedOperations.IsEmpty; }
+            get { return _operationsBuffer.IsEmpty && _awaitingRequests.IsEmpty && _receivedRequests.IsEmpty; }
         }
-        
+        */
+
         public event OperationSentEventHandler OperationSent;
         
         /// <summary>Constructor.</summary>
@@ -69,13 +91,13 @@ namespace Bricks.Hometask.Sandbox
         {
             ClientId = clientId;
             _data = new List<int>();
-            _awaitingOperations = new ConcurrentQueue<IRequest>();
+            _awaitingRequests = new ConcurrentQueue<IRequest>();
             _operationsBuffer = new ConcurrentQueue<IOperation>();
-            _receivedOperations = new ConcurrentQueue<IRequest>();
-            _slimLocker = new ReaderWriterLockSlim();
+            _receivedRequests = new ConcurrentQueue<IRequest>();
+            _logger = new ConsoleLogger(_color);
 
             _tokenSource = new CancellationTokenSource();
-            _sendToServerCancellationToken = new CancellationToken();
+            _token = _tokenSource.Token;
         }
         
         public void SyncData(IEnumerable<int> data, int revision)
@@ -93,114 +115,133 @@ namespace Bricks.Hometask.Sandbox
         }
         
         public void Run()
-        {
-            _isRunning = true;
-            
-            // run async job to send operations to server
-            Task.Run(() => SendOperationsToServer(_sendToServerCancellationToken));
-            
-            // logging
-            System.Console.WriteLine($"Client with ID: '{ClientId}' has been started");
-            
-            while (_isRunning)
-            {
-                // infinity loop to proceed data
-               System.Console.WriteLine($"Client with ID: '{ClientId}' is running");
+        {   
+            // run async job to send requests to server
+            Task.Run(() => SendRequests(_token));
 
-               // emulate real world operation
-               Thread.Sleep(Timeout.OneSecond);
+            // logging
+            _logger.Log($"Client with ID: '{ClientId}' has been started");
+            
+            while (true)
+            {
+                HandleReceivedRequests();
             }
         }
         
         public void Stop()
         {
-            if (!_isRunning) System.Console.WriteLine("Client is already stopped");
+            if (!_isRunning) _logger.Log("Client is already stopped");
 
             _isRunning = false;
             _tokenSource.Cancel();
-            
+
             // logging
-            System.Console.WriteLine($"Client with ID: '{ClientId}' has been stopped");
+            _logger.Log($"Client with ID: '{ClientId}' has been stopped");
         }
 
         public void PushOperation(IOperation operation)
         {
-            if (!_isRunning) System.Console.WriteLine($"Client with ID: {ClientId} can't process operation, because client is not running");
+            if (!_isRunning) _logger.Log($"Client with ID: {ClientId} can't process operation, because client is not running");
+
+            _event.Reset();
 
             ProcessOperation(operation);
-            
+
             // logging
-            System.Console.WriteLine($"Operation occured at Client ID: '{ClientId}', type: '{operation.OperationType}'");
-        }
-        
-        public void ReceiveOperationsFromServer(IRequest request)
-        {
-            if (!_isRunning) System.Console.WriteLine($"Client with ID: {ClientId} can't sync with the server, because client is not running");
+            _logger.Log($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
 
-            _receivedOperations.Enqueue(request);
+            _event.Set();
         }
         
-        private void SendOperationsToServer(CancellationToken token)
+        public void ReceiveRequestsFromServer(IRequest request)
         {
-            while (_isRunning)
+            if (!_isRunning) _logger.Log($"Client with ID: {ClientId} can't sync with the server, because client is not running");
+
+            //_event.WaitOne();
+
+            _receivedRequests.Enqueue(request);
+        }
+        
+        private void HandleReceivedRequests()
+        {
+            if (!_receivedRequests.IsEmpty)
             {
-                while (!_receivedOperations.IsEmpty)
+                if (!_receivedRequests.TryDequeue(out IRequest r))
                 {
-                    if (!_receivedOperations.TryDequeue(out IRequest r)) continue;
-                    
-                    // check if request is acknowledgment for the awaiting operation 
-                    if (r.IsAcknowledged && 
-                        r.ClientId == ClientId &&
-                        _awaitingOperations.Count() != 0 &&
-                        r.Operations.All(o1 => _awaitingOperations.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
-                    {
-                        _awaitingOperations.Clear();
-                        _revision = r.Revision;
-
-                        // logging
-                        System.Console.WriteLine($"Client with ID: '{ClientId}' recieved ack message");
-                        continue;
-                    }
-                    
-                    // transform operations in buffer over the received messages
-                    List<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
-                    _operationsBuffer.Clear();
-                    foreach (IOperation operation in operations)
-                    {
-                        _operationsBuffer.Enqueue(operation);
-                    }
-                    
-                    ApplyOperations(r.Operations.ToList());
+                    return;
                 }
 
-                // awaiting acknowledgement from server
-                if (!_awaitingOperations.IsEmpty)
+                _event.Reset();
+
+                // check if request is acknowledgment for the awaiting operation 
+                if (r.IsAcknowledged &&
+                    r.ClientId == ClientId &&
+                    _awaitingRequests.Count() != 0 &&
+                    r.Operations.All(o1 => _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
                 {
-                    //TODO: increase timout on each iteration
+                    _awaitingRequests.Clear();
+                    _revision = r.Revision;
+
+                    // logging
+                    _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
+                    _event.Set();
+                    return;
+                }
+
+                // transform operations in buffer over the received messages
+                List<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
+                _operationsBuffer.Clear();
+                foreach (IOperation operation in operations)
+                {
+                    _operationsBuffer.Enqueue(operation);
+                }
+
+                ApplyOperations(r.Operations.ToList());
+
+                _event.Set();
+            }
+
+            Thread.Sleep(System.TimeSpan.FromMilliseconds(10));
+        }
+
+        private void SendRequests(CancellationToken token)
+        {
+            _isRunning = true;
+
+            while (!token.IsCancellationRequested)
+            {
+                _event.WaitOne();
+
+                // awaiting acknowledgement from server
+                if (!_awaitingRequests.IsEmpty)
+                {
+                    _event.Set();
                     continue;
                 }
 
                 // do nothing if buffer is empty
-                if (_operationsBuffer.IsEmpty) continue;
+                if (_operationsBuffer.IsEmpty)
+                {
+                    _event.Set();
+                    continue;
+                }
 
                 // if no subscriber (server) attached do not send operations
-                if (OperationSent == null) continue;
-                
+                if (OperationSent == null)
+                {
+                    _event.Set();
+                    continue;
+                }
+
                 // send new bunch of operations from buffer if no awaiting operations
                 Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
                 OperationSent.Invoke(request);
 
-                _awaitingOperations.Enqueue(request);
+                _awaitingRequests.Enqueue(request);
                 _operationsBuffer.Clear();
 
-                //TODO: add timeout
+                _event.Set();                
             }
-
-            if (!token.IsCancellationRequested) return;
-            
-            // clear queues if client is shut down
-            _awaitingOperations.Clear();
-            _operationsBuffer.Clear();
         }
 
         private void ApplyOperations(IEnumerable<IOperation> operations)
