@@ -16,22 +16,7 @@ namespace Bricks.Hometask.Sandbox
             List<Task> clientTasks = new List<Task>();
             Server server = new Server();
             
-            Task serverTask = Task.Run(() => server.Run());
-            //tasks.Add(serverTask);
-
-            // spin till the server is up and running
-            if (!server.IsAlive)
-            {
-                Console.WriteLine();
-                Console.WriteLine("Wait till the Server is up and running");
-
-                while(!server.IsAlive)
-                {
-                    Console.WriteLine(".");
-                    Thread.Sleep(10);
-                }
-                Console.WriteLine();
-            }
+            Task.Run(() => server.Run());
 
             for (int i = 0; i < numberOfClients; i++)
             {
@@ -46,14 +31,13 @@ namespace Bricks.Hometask.Sandbox
             }
 
             Task.WaitAll(clientTasks.ToArray());
-
             //server.Stop();
 
             //Task.WaitAll(serverTask);
 
             Console.WriteLine("Sync data");
             Thread.Sleep(System.TimeSpan.FromSeconds(5));
-
+            
             /*
             foreach (IClient c in clients)
             {
@@ -61,12 +45,14 @@ namespace Bricks.Hometask.Sandbox
             }
             */
 
+            /*
             foreach (IClient c in clients)
             {
                 PrintClient(c);
             }
 
             PrintServer(server);
+            */
 
             Console.ReadLine();
         }

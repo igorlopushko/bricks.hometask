@@ -3,10 +3,12 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask
 {
     public static class OperationProcessor
     {
+        private static readonly ReaderWriterLockSlim SlimLocker = new ReaderWriterLockSlim();
+        
         public static void InsertOperation(IList<int> data, IOperation operation)
         {
             if (!operation.Value.HasValue)
@@ -20,8 +22,16 @@ namespace Bricks.Hometask.Sandbox
                                                       $"at index: '{operation.Index}', " +
                                                       $"operation timestamp: '{operation.Timestamp}'");
             }
-            
-            data.Insert(operation.Index, operation.Value.Value);
+
+            SlimLocker.EnterWriteLock();
+            try
+            {
+                data.Insert(operation.Index, operation.Value.Value);
+            }
+            finally
+            {
+                SlimLocker.ExitWriteLock();
+            }
         }
 
         public static void UpdateOperation(IList<int> data, IOperation operation)
@@ -38,7 +48,15 @@ namespace Bricks.Hometask.Sandbox
                                                       $"operation timestamp: '{operation.Timestamp}'");
             }
             
-            data[operation.Index] = operation.Value.Value;
+            SlimLocker.EnterWriteLock();
+            try
+            {
+                data[operation.Index] = operation.Value.Value;
+            }
+            finally
+            {
+                SlimLocker.ExitWriteLock();
+            }
         }
         
         public static void DeleteOperation(IList<int> data,IOperation operation)
@@ -49,7 +67,16 @@ namespace Bricks.Hometask.Sandbox
                                                       $"at index: '{operation.Index}', " +
                                                       $"operation timestamp: '{operation.Timestamp}'");
             }
-            data.RemoveAt(operation.Index);
+
+            SlimLocker.EnterWriteLock();
+            try
+            {
+                data.RemoveAt(operation.Index);
+            }
+            finally
+            {
+                SlimLocker.ExitWriteLock();
+            }
         }
     }
 }

@@ -3,23 +3,20 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-using System.Threading.Tasks;
 
 namespace Bricks.Hometask.Sandbox
 {
     public class Server : IServer
     {
-        private readonly ReaderWriterLockSlim _slimLocker = new ReaderWriterLockSlim();
-        private readonly ManualResetEvent _event = new ManualResetEvent(false);
+        private readonly object _locker = new object();
 
         private readonly System.ConsoleColor _color = System.ConsoleColor.Red;
         private readonly ConsoleLogger _logger;
 
-        private readonly ConcurrentQueue<IRequest> _awatingRequests;
+        private readonly ConcurrentQueue<IRequest> _awaitingRequests;
         private readonly ConcurrentDictionary<int, List<IOperation>> _revisionLog;
         private readonly ConcurrentDictionary<int, IClient> _clients;
         private readonly IList<int> _data;
-        private bool _isRunning;
         private int _revision;
         private CancellationTokenSource _tokenSource;
         private CancellationToken _token;
@@ -28,17 +25,12 @@ namespace Bricks.Hometask.Sandbox
         {
             get
             {
-                _slimLocker.EnterReadLock();
-                try
+                lock(_locker)
                 {
                     foreach(int item in _data)
                     {
                         yield return item;
                     }
-                }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
                 }
             }
         }
@@ -47,30 +39,9 @@ namespace Bricks.Hometask.Sandbox
         {
             get
             {
-                _slimLocker.EnterReadLock();
-                try
+                lock(_locker)
                 {
                     return _revision;
-                }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
-                }
-            }
-        }
-
-        public bool IsAlive
-        {
-            get
-            {
-                _slimLocker.EnterReadLock();
-                try
-                {
-                    return _isRunning;
-                }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
                 }
             }
         }
@@ -80,7 +51,7 @@ namespace Bricks.Hometask.Sandbox
         {
             _clients = new ConcurrentDictionary<int, IClient>();
             _data = new List<int>();
-            _awatingRequests = new ConcurrentQueue<IRequest>();
+            _awaitingRequests = new ConcurrentQueue<IRequest>();
             _revisionLog = new ConcurrentDictionary<int, List<IOperation>>();
             _revision = 0;
             _logger = new ConsoleLogger(_color);
@@ -92,39 +63,26 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Runs server.</summary>
         public void Run()
         {
-            //_isRunning = true;
-            
-            // run async job to process awaiting operations
-            Task.Run(() => ProcessRequests(_token));
-            
-            //System.Console.WriteLine($"Server has been started.");
-            
             while (true)
             {
-                // infinity loop to proceed data. 
-                //System.Console.WriteLine("Server is running");
-                
-                // emulate real world delays
-                //Thread.Sleep(Timeout.OneSecond);
+                ProcessRequests(_token);
             }
         }
 
         /// <summary>Stops server's execution.</summary>
         public void Stop()
         {
-            //if(!_isRunning) System.Console.WriteLine("Server is already stopped");
-
             // unsubscribe all clients
             foreach (IClient c in _clients.Values)
             {
                 c.OperationSent -= ReceivedClientRequestEventHandler;
             }
 
-            // wait untill all awaiting requests are processed.
-            if (!_awatingRequests.IsEmpty)
+            // wait until all awaiting requests are processed.
+            if (!_awaitingRequests.IsEmpty)
             {
-                _logger.Log("Trying to stop server. Wait untill all awaiting requests are processed.");
-                while(!_awatingRequests.IsEmpty)
+                _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
+                while(!_awaitingRequests.IsEmpty)
                 {
                     Thread.Sleep(10);
                 }
@@ -132,7 +90,6 @@ namespace Bricks.Hometask.Sandbox
             
             _clients.Clear();
             _tokenSource.Cancel();
-            _isRunning = false;
 
             _logger.Log($"Server has been stopped.");
         }
@@ -191,9 +148,10 @@ namespace Bricks.Hometask.Sandbox
 
         private void ReceivedClientRequestEventHandler(Request request)
         {
-            //_event.WaitOne();
-
-            _awatingRequests.Enqueue(request);            
+            lock (_locker)
+            {
+                _awaitingRequests.Enqueue(request);
+            }            
             
             // logging
             StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
@@ -204,54 +162,41 @@ namespace Bricks.Hometask.Sandbox
 
         private void ProcessRequests(CancellationToken token)
         {
-            _isRunning = true;
-
-            // infinite loop to process incoming client requests with operations 
             while (!token.IsCancellationRequested)
             {
                 // process all incoming request from the queue
-                //while (!_awatingRequests.IsEmpty)
-                //{
-                //_event.Reset();
-                if (!_awatingRequests.IsEmpty && _awatingRequests.TryDequeue(out IRequest request))
+                if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest request)) continue;
+                
+                lock (_locker)
                 {
                     // transform request operations according to the current server state
                     IRequest transformedRequest = TransformRequest(request);
 
                     // apply operations over the server data document
                     ApplyOperations(transformedRequest);
-                        
+
                     // save operations to the server revision log
                     _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
-                    IRequest acknowledgedRequest = new Request(transformedRequest.ClientId, _revision + 1, transformedRequest.Operations.ToList(), true);
-                        
+                    IRequest acknowledgedRequest = new Request(transformedRequest.ClientId, _revision + 1,
+                        transformedRequest.Operations.ToList(), true);
+
                     // broadcast operations to other clients
                     foreach (IClient c in _clients.Values)
-                    {                            
+                    {
                         c.ReceiveRequestsFromServer(acknowledgedRequest);
 
                         // logging
                         _logger.Log($"Message is sent by Server to Client with ID: '{c.ClientId}'");
                     }
-                        
-                    // increment local revision
-                    Interlocked.Increment(ref _revision);
-                }
-                //_event.Set();
 
-                Thread.Sleep(System.TimeSpan.FromMilliseconds(10));
-                //}
+                    // increment local revision
+                    _revision++;
+                }
             }
 
             _logger.Log("Exit ProcessRequests");
-
-            // clear request queue if server is shut down
-            //if (token.IsCancellationRequested)
-            {
-                _awatingRequests.Clear();
-            }
         }
 
         private IRequest TransformRequest(IRequest request)

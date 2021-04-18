@@ -8,15 +8,13 @@ namespace Bricks.Hometask.Sandbox
 {
     public class Client : IClient
     {
-        private readonly ReaderWriterLockSlim _slimLocker = new ReaderWriterLockSlim();
-        private readonly ManualResetEvent _event = new ManualResetEvent(false);
+        private readonly object _locker = new object();
 
-        private readonly System.ConsoleColor _color = System.ConsoleColor.White;
+        private readonly System.ConsoleColor _color = System.ConsoleColor.Blue;
         private readonly ConsoleLogger _logger;
 
         private IList<int> _data;
         private int _revision;
-        private bool _isRunning;
         private readonly ConcurrentQueue<IRequest> _awaitingRequests;
         private readonly ConcurrentQueue<IRequest> _receivedRequests;
         private readonly ConcurrentQueue<IOperation> _operationsBuffer;
@@ -29,17 +27,12 @@ namespace Bricks.Hometask.Sandbox
         {
             get
             {
-                _slimLocker.EnterReadLock();
-                try
+                lock(_locker)
                 {
                     foreach(int item in _data)
                     {
                         yield return item;
                     }
-                }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
                 }
             }
         }
@@ -48,40 +41,12 @@ namespace Bricks.Hometask.Sandbox
         {
             get
             {
-                _slimLocker.EnterReadLock();
-                try
+                lock(_locker)
                 {
                     return _revision;
                 }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
-                }
             }
         }
-
-        /*
-        public bool IsAlive
-        {
-            get
-            {
-                _slimLocker.EnterReadLock();
-                try
-                {
-                    return _isRunning;
-                }
-                finally
-                {
-                    _slimLocker.ExitReadLock();
-                }
-            }
-        }
-
-        public bool CanBeStopped
-        {
-            get { return _operationsBuffer.IsEmpty && _awaitingRequests.IsEmpty && _receivedRequests.IsEmpty; }
-        }
-        */
 
         public event OperationSentEventHandler OperationSent;
         
@@ -102,15 +67,10 @@ namespace Bricks.Hometask.Sandbox
         
         public void SyncData(IEnumerable<int> data, int revision)
         {
-            _slimLocker.EnterWriteLock();
-            try
+            lock(_locker)
             {
                 _data = new List<int>(data.ToList());
                 _revision = revision;
-            }
-            finally
-            {
-                _slimLocker.ExitWriteLock();
             }
         }
         
@@ -130,9 +90,6 @@ namespace Bricks.Hometask.Sandbox
         
         public void Stop()
         {
-            if (!_isRunning) _logger.Log("Client is already stopped");
-
-            _isRunning = false;
             _tokenSource.Cancel();
 
             // logging
@@ -141,55 +98,48 @@ namespace Bricks.Hometask.Sandbox
 
         public void PushOperation(IOperation operation)
         {
-            if (!_isRunning) _logger.Log($"Client with ID: {ClientId} can't process operation, because client is not running");
-
-            _event.Reset();
-
-            ProcessOperation(operation);
+            lock (_locker)
+            {
+                ProcessOperation(operation);
+            }
 
             // logging
             _logger.Log($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
-
-            _event.Set();
         }
         
         public void ReceiveRequestsFromServer(IRequest request)
         {
-            if (!_isRunning) _logger.Log($"Client with ID: {ClientId} can't sync with the server, because client is not running");
-
-            //_event.WaitOne();
-
-            _receivedRequests.Enqueue(request);
+            lock (_locker)
+            {
+                _receivedRequests.Enqueue(request);
+            }
         }
         
         private void HandleReceivedRequests()
         {
-            if (!_receivedRequests.IsEmpty)
+            if (_receivedRequests.IsEmpty) return;
+            if (!_receivedRequests.TryDequeue(out IRequest r)) return;
+
+            lock (_locker)
             {
-                if (!_receivedRequests.TryDequeue(out IRequest r))
-                {
-                    return;
-                }
-
-                _event.Reset();
-
                 // check if request is acknowledgment for the awaiting operation 
                 if (r.IsAcknowledged &&
                     r.ClientId == ClientId &&
                     _awaitingRequests.Count() != 0 &&
-                    r.Operations.All(o1 => _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
+                    r.Operations.All(o1 =>
+                        _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
                 {
                     _awaitingRequests.Clear();
                     _revision = r.Revision;
 
                     // logging
                     _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
-                    _event.Set();
                     return;
                 }
 
                 // transform operations in buffer over the received messages
-                List<IOperation> operations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
+                List<IOperation> operations =
+                    OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
                 _operationsBuffer.Clear();
                 foreach (IOperation operation in operations)
                 {
@@ -197,50 +147,31 @@ namespace Bricks.Hometask.Sandbox
                 }
 
                 ApplyOperations(r.Operations.ToList());
-
-                _event.Set();
             }
-
-            Thread.Sleep(System.TimeSpan.FromMilliseconds(10));
         }
 
         private void SendRequests(CancellationToken token)
         {
-            _isRunning = true;
-
             while (!token.IsCancellationRequested)
             {
-                _event.WaitOne();
-
-                // awaiting acknowledgement from server
-                if (!_awaitingRequests.IsEmpty)
+                lock (_locker)
                 {
-                    _event.Set();
-                    continue;
+                    // awaiting acknowledgement from server
+                    if (!_awaitingRequests.IsEmpty) continue;
+
+                    // do nothing if buffer is empty
+                    if (_operationsBuffer.IsEmpty) continue;
+
+                    // if no subscriber (server) attached do not send operations
+                    if (OperationSent == null) continue;
+
+                    // send new bunch of operations from buffer if no awaiting operations
+                    Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
+                    OperationSent.Invoke(request);
+
+                    _awaitingRequests.Enqueue(request);
+                    _operationsBuffer.Clear();
                 }
-
-                // do nothing if buffer is empty
-                if (_operationsBuffer.IsEmpty)
-                {
-                    _event.Set();
-                    continue;
-                }
-
-                // if no subscriber (server) attached do not send operations
-                if (OperationSent == null)
-                {
-                    _event.Set();
-                    continue;
-                }
-
-                // send new bunch of operations from buffer if no awaiting operations
-                Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
-                OperationSent.Invoke(request);
-
-                _awaitingRequests.Enqueue(request);
-                _operationsBuffer.Clear();
-
-                _event.Set();                
             }
         }
 
