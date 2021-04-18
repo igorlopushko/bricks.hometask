@@ -9,9 +9,6 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Gets client unique identifier.</summary>
         public int ClientId { get; }
 
-        /// <summary>Gets boolean value which determines whether the client is alive or not.</summary>
-        //public bool IsAlive { get; }
-
         /// <summary>Gets current client state.</summary>
         public IEnumerable<int> Data { get; }
         
@@ -20,9 +17,6 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Runs client.</summary>
         public void Run();
-
-        /// <summary>Determines whether the client can be stopped or not.</summary>
-        //public bool CanBeStopped { get; }
 
         /// <summary>Stops client's execution.</summary>
         public void Stop();

@@ -44,8 +44,7 @@ namespace Bricks.Hometask.Sandbox
         {
             if (data.Count == 0 || operation.Index < 0 || operation.Index >= data.Count)
             {
-                throw new ArgumentOutOfRangeException($"Can't insert value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}' " +
-                                                      $"at index: '{operation.Index}', " +
+                throw new ArgumentOutOfRangeException($"Can't delete item at index: '{operation.Index}', " +
                                                       $"operation timestamp: '{operation.Timestamp}'");
             }
             data.RemoveAt(operation.Index);

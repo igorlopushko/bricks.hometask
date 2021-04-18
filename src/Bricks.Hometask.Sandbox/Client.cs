@@ -111,7 +111,7 @@ namespace Bricks.Hometask.Sandbox
         }
         
         public void ReceiveRequestsFromServer(IRequest request)
-        {            
+        {
             _receivedRequests.Enqueue(request);
             _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
         }
