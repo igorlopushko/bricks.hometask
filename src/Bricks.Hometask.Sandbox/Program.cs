@@ -10,8 +10,8 @@ namespace Bricks.Hometask.Sandbox
     {
         static void Main(string[] args)
         {
-            int operationsCount = 3;
-            int numberOfClients = 2;
+            int operationsCount = 5;
+            int numberOfClients = 3;
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
             Server server = new Server();
@@ -59,7 +59,7 @@ namespace Bricks.Hometask.Sandbox
         {            
             for (int i = 0; i < operationsCount; i++)
             {
-                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client.Data.Count(), client.ClientId);
+                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client);
                 client.PushOperation(operation);
 
                 Thread.Sleep(System.TimeSpan.FromMilliseconds(200));
