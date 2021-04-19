@@ -2,12 +2,12 @@ using System.Collections.Generic;
 
 namespace Bricks.Hometask.Sandbox
 {
-    public delegate void BroadcastEventHandler(IRequest request);
+    public delegate void BroadcastEventHandler<T>(IRequest<T> request);
 
-    public interface IServer
+    public interface IServer<T>
     {
         /// <summary>Gets current server state.</summary>
-        public IEnumerable<int> Data { get; }
+        public IEnumerable<T> Data { get; }
         
         /// <summary>Gets current server revision number.</summary>
         public int Revision { get; }
@@ -20,14 +20,14 @@ namespace Bricks.Hometask.Sandbox
         
         /// <summary>Registers a new client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void RegisterClient(IClient client);
+        public void RegisterClient(IClient<T> client);
         
         /// <summary>Unregisters a client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void UnregisterClient(IClient client);
+        public void UnregisterClient(IClient<T> client);
 
 
         /// <summary>An event that occurs when the server emits a new request.</summary>
-        public event BroadcastEventHandler BroadcastRequest;
+        public event BroadcastEventHandler<T> BroadcastRequest;
     }
 }

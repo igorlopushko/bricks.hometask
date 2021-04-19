@@ -2,10 +2,10 @@ using System.Collections.Generic;
 
 namespace Bricks.Hometask.Sandbox
 {
-    public interface IRequest
+    public interface IRequest<T>
     {
         /// <summary>Gets collection of operations./// </summary>
-        public IEnumerable<IOperation> Operations { get; }
+        public IEnumerable<IOperation<T>> Operations { get; }
 
         /// <summary>Gets client unique identifier that initiated the request./// </summary>
         public int ClientId { get; }

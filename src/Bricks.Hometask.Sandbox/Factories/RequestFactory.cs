@@ -2,11 +2,11 @@
 
 namespace Bricks.Hometask.Sandbox
 {
-    public class RequestFactory
+    public class RequestFactory<T>
     {
-        public static IRequest CreateRequest(int clientId, int revision, IEnumerable<IOperation> operations, bool isAcknowledged = false)
+        public static IRequest<T> CreateRequest(int clientId, int revision, IEnumerable<IOperation<T>> operations, bool isAcknowledged = false)
         {
-            return new Request(clientId, revision, operations, isAcknowledged);
+            return new Request<T>(clientId, revision, operations, isAcknowledged);
         }
     }
 }

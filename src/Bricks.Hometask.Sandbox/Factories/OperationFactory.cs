@@ -1,10 +1,10 @@
 ﻿namespace Bricks.Hometask.Sandbox
 {
-    public class OperationFactory
+    public class OperationFactory<T>
     {
-        public static IOperation CreateOperation(OperationType type, int index, int clientId, int? value = null, long? timestamp = null)
+        public static IOperation<T> CreateOperation(OperationType type, int index, int clientId, T value, long? timestamp = null)
         {
-            return new Operation(type, index, clientId, value, timestamp);
+            return new Operation<T>(type, index, clientId, value, timestamp);
         }
     }
 }

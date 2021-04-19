@@ -6,28 +6,28 @@ using System.Threading;
 
 namespace Bricks.Hometask.Sandbox
 {
-    public class Server : IServer
+    public class Server<T> : IServer<T>
     {
         private readonly object _locker = new object();
 
         private readonly System.ConsoleColor _color = System.ConsoleColor.Red;
         private readonly ConsoleLogger _logger;
 
-        private readonly ConcurrentQueue<IRequest> _awaitingRequests;
-        private readonly ConcurrentDictionary<int, List<IOperation>> _revisionLog;
-        private readonly ConcurrentDictionary<int, IClient> _clients;
-        private readonly IList<int> _data;
+        private readonly ConcurrentQueue<IRequest<T>> _awaitingRequests;
+        private readonly ConcurrentDictionary<int, List<IOperation<T>>> _revisionLog;
+        private readonly ConcurrentDictionary<int, IClient<T>> _clients;
+        private readonly IList<T> _data;
         private int _revision;
         private CancellationTokenSource _tokenSource;
         private CancellationToken _token;
                 
-        public IEnumerable<int> Data
+        public IEnumerable<T> Data
         {
             get
             {
                 lock(_locker)
                 {
-                    foreach(int item in _data)
+                    foreach(T item in _data)
                     {
                         yield return item;
                     }
@@ -46,15 +46,15 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        public event BroadcastEventHandler BroadcastRequest;
+        public event BroadcastEventHandler<T> BroadcastRequest;
 
         /// <summary>Constructor.</summary>
         public Server()
         {
-            _clients = new ConcurrentDictionary<int, IClient>();
-            _data = new List<int>();
-            _awaitingRequests = new ConcurrentQueue<IRequest>();
-            _revisionLog = new ConcurrentDictionary<int, List<IOperation>>();
+            _clients = new ConcurrentDictionary<int, IClient<T>>();
+            _data = new List<T>();
+            _awaitingRequests = new ConcurrentQueue<IRequest<T>>();
+            _revisionLog = new ConcurrentDictionary<int, List<IOperation<T>>>();
             _revision = 0;
             _logger = new ConsoleLogger(_color);
 
@@ -72,7 +72,7 @@ namespace Bricks.Hometask.Sandbox
         public void Stop()
         {
             // unsubscribe all clients
-            foreach (IClient c in _clients.Values)
+            foreach (IClient<T> c in _clients.Values)
             {
                 c.RequestSent -= ReceivedClientRequestEventHandler;
             }
@@ -93,7 +93,7 @@ namespace Bricks.Hometask.Sandbox
             _logger.Log($"Server has been stopped.");
         }
                 
-        public void RegisterClient(IClient client)
+        public void RegisterClient(IClient<T> client)
         {
             if (_clients.ContainsKey(client.ClientId))
             {
@@ -118,7 +118,7 @@ namespace Bricks.Hometask.Sandbox
             }
         }
                 
-        public void UnregisterClient(IClient client)
+        public void UnregisterClient(IClient<T> client)
         {
             if (!_clients.ContainsKey(client.ClientId))
             {
@@ -128,7 +128,7 @@ namespace Bricks.Hometask.Sandbox
                 return;
             }
 
-            if (_clients.TryRemove(client.ClientId, out IClient removedClient))
+            if (_clients.TryRemove(client.ClientId, out IClient<T> removedClient))
             {
                 removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
@@ -142,7 +142,7 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        private void ReceivedClientRequestEventHandler(IRequest request)
+        private void ReceivedClientRequestEventHandler(IRequest<T> request)
         {
             lock (_locker)
             {
@@ -161,12 +161,12 @@ namespace Bricks.Hometask.Sandbox
             while (!token.IsCancellationRequested)
             {
                 // process all incoming request from the queue
-                if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest request)) continue;
+                if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest<T> request)) continue;
                 
                 lock (_locker)
                 {
                     // transform request operations according to the current server state
-                    IRequest transformedRequest = TransformRequest(request);
+                    IRequest<T> transformedRequest = TransformRequest(request);
 
                     // apply operations over the server data document
                     ApplyOperations(transformedRequest);
@@ -175,7 +175,7 @@ namespace Bricks.Hometask.Sandbox
                     _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
-                    IRequest acknowledgedRequest = RequestFactory.CreateRequest(
+                    IRequest<T> acknowledgedRequest = RequestFactory<T>.CreateRequest(
                         transformedRequest.ClientId, 
                         _revision + 1,
                         transformedRequest.Operations.ToList(), 
@@ -193,43 +193,43 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        private IRequest TransformRequest(IRequest request)
+        private IRequest<T> TransformRequest(IRequest<T> request)
         {
             if (request.Revision == _revision) return request;
             if (request.Revision > _revision) throw new System.ApplicationException("Request revision is ahead of server revision.");
 
-            IRequest tempRequest = request;
+            IRequest<T> tempRequest = request;
             
             // get operations from revision log since request revision number
             var logOperations = _revisionLog
                 .Where(pair => pair.Key > tempRequest.Revision)
                 .OrderBy(pair => pair.Key).ToList();
 
-            List<IOperation> transformedOperations = new List<IOperation>();
+            List<IOperation<T>> transformedOperations = new List<IOperation<T>>();
             transformedOperations.AddRange(tempRequest.Operations);
 
             foreach (var (revision, operations) in logOperations)
             {
-                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
+                List<IOperation<T>> temp = OperationTransformer<T>.Transform(transformedOperations, operations).ToList();
                 transformedOperations.Clear();
                 transformedOperations.AddRange(temp);
-                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
+                tempRequest = RequestFactory<T>.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
             }
 
             return tempRequest;
         }
 
-        private void ApplyOperations(IRequest request)
+        private void ApplyOperations(IRequest<T> request)
         {
-            foreach (IOperation operation in request.Operations)
+            foreach (IOperation<T> operation in request.Operations)
             {
                 switch (operation.OperationType)
                 {
                     case OperationType.Insert:
-                        OperationProcessor.InsertOperation(_data, operation);
+                        OperationProcessor<T>.InsertOperation(_data, operation);
                         break;
                     case OperationType.Delete:
-                        OperationProcessor.DeleteOperation(_data, operation);
+                        OperationProcessor<T>.DeleteOperation(_data, operation);
                         break;
                     default:
                         throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");

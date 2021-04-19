@@ -11,15 +11,15 @@ namespace Bricks.Hometask.Sandbox
         {
             int operationsCount = 5;
             int numberOfClients = 3;
-            List<IClient> clients = new List<IClient>();
+            List<IClient<int>> clients = new List<IClient<int>>();
             List<Task> clientTasks = new List<Task>();
-            Server server = new Server();
+            Server<int> server = new Server<int>();
             
             Task.Run(() => server.Run());
 
             for (int i = 0; i < numberOfClients; i++)
             {
-                Client client = new Client(server, i + 1);
+                Client<int> client = new Client<int>(server, i + 1);
                 clients.Add(client);
 
                 server.RegisterClient(client);
@@ -44,7 +44,7 @@ namespace Bricks.Hometask.Sandbox
             }
             */
             
-            foreach (IClient c in clients)
+            foreach (IClient<int> c in clients)
             {
                 PrintClient(c);
             }
@@ -54,11 +54,11 @@ namespace Bricks.Hometask.Sandbox
             Console.ReadLine();
         }
 
-        private static void PushOperationsToClient(IClient client, int operationsCount)
+        private static void PushOperationsToClient(IClient<int> client, int operationsCount)
         {            
             for (int i = 0; i < operationsCount; i++)
             {
-                IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client);
+                IOperation<int> operation = OperationRandomGenerator.GenerateRandomOperation(client);
                 client.PushOperation(operation);
 
                 // generate new operation 5 times per second
@@ -68,7 +68,7 @@ namespace Bricks.Hometask.Sandbox
             Console.WriteLine($"Client '{client.ClientId}' finished processing");
         }
 
-        private static void PrintClient(IClient client)
+        private static void PrintClient(IClient<int> client)
         {
             Console.WriteLine();
             Console.WriteLine($"Client with ID: '{client.ClientId}' data set:");
@@ -79,7 +79,7 @@ namespace Bricks.Hometask.Sandbox
             Console.WriteLine();
         }
 
-        private static void PrintServer(IServer server)
+        private static void PrintServer(IServer<int> server)
         {
             Console.WriteLine();
             Console.WriteLine($"Server data set:");

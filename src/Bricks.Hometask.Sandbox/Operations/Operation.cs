@@ -2,15 +2,15 @@ using System;
 
 namespace Bricks.Hometask.Sandbox
 {
-    public class Operation : IOperation
+    public class Operation<T> : IOperation<T>
     {
         public OperationType OperationType { get; }
-        public int? Value { get; }
+        public T Value { get; }
         public int Index { get; }
         public long Timestamp { get; }
         public int ClientId { get; }
 
-        public Operation(OperationType type, int index, int clientId, int? value = null, long? timestamp = null)
+        public Operation(OperationType type, int index, int clientId, T value, long? timestamp = null)
         {
             OperationType = type;
             Index = index;
@@ -25,21 +25,7 @@ namespace Bricks.Hometask.Sandbox
             else
             {
                 // generate new timestamp if not specified.
-                Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeSeconds();
-            }
-        }
-
-        public override bool Equals(Object obj)
-        {
-            //Check for null and compare run-time types.
-            if ((obj == null) || this.GetType() != obj.GetType())
-            {
-                return false;
-            }
-            else 
-            {
-                Operation p = (Operation) obj;
-                return Index == p.Index;
+                Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
             }
         }
     }
