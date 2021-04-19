@@ -62,7 +62,7 @@ namespace Bricks.Hometask.Sandbox
             }
             
             // Tii(Ins[3, "a"], Ins[1, "b"]) -> Ins[4, "a"]
-            return new Operation(o1.OperationType, o1.Index + 1, o1.ClientId, o1.Value, o1.Timestamp);
+            return OperationFactory.CreateOperation(o1.OperationType, o1.Index + 1, o1.ClientId, o1.Value, o1.Timestamp);
         }
 
         /// <summary>Transform Insert-Delete case.</summary>
@@ -78,7 +78,7 @@ namespace Bricks.Hometask.Sandbox
             }
 
             // Tid(Ins[3, "a"], Del[1]) -> Ins[2, "a"]
-            return new Operation(o1.OperationType, o1.Index - 1, o1.ClientId, o1.Value, o1.Timestamp);
+            return OperationFactory.CreateOperation(o1.OperationType, o1.Index - 1, o1.ClientId, o1.Value, o1.Timestamp);
         }
 
         /// <summary>Transform Delete-Insert case.</summary>
@@ -94,7 +94,7 @@ namespace Bricks.Hometask.Sandbox
             }
 
             // Tdi(Del[3], Ins[1, "b"]) -> Del[4]
-            return new Operation(o1.OperationType, o1.Index + 1, o1.ClientId, o1.Value, o1.Timestamp);
+            return OperationFactory.CreateOperation(o1.OperationType, o1.Index + 1, o1.ClientId, o1.Value, o1.Timestamp);
         }
         
         /// <summary>Transform Delete-Delete case.</summary>
@@ -112,7 +112,7 @@ namespace Bricks.Hometask.Sandbox
             if (o1.Index > o2.Index)
             {
                 // Tdd(Del[3], Del[1]) -> Del[2]
-                return new Operation(o1.OperationType, o1.Index - 1, o1.ClientId, o1.Value, o1.Timestamp);
+                return OperationFactory.CreateOperation(o1.OperationType, o1.Index - 1, o1.ClientId, o1.Value, o1.Timestamp);
             }
 
             // breaking delete-tie using I (identity operation) Tdd(Del[3], Del[3]) -> I

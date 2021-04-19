@@ -37,11 +37,11 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        public event OperationSentEventHandler OperationSent;
-        
+        public event RequestSentEventHandler RequestSent;
+
         /// <summary>Constructor.</summary>
         /// <param name="clientId">Unique client identifier.</param>
-        public Client(int clientId)
+        public Client(IServer server, int clientId)
         {
             ClientId = clientId;
             _data = new List<int>();
@@ -50,10 +50,18 @@ namespace Bricks.Hometask.Sandbox
             _receivedRequests = new ConcurrentQueue<IRequest>();
             _logger = new ConsoleLogger(_color);
 
+            server.BroadcastRequest += Server_BroadcastRequest;
+
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
         }
-        
+
+        private void Server_BroadcastRequest(IRequest request)
+        {
+            _receivedRequests.Enqueue(request);
+            _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
+        }
+
         public void SyncData(IEnumerable<int> data, int revision)
         {
             // skip data sync if data is in initial state
@@ -98,13 +106,7 @@ namespace Bricks.Hometask.Sandbox
             // logging
             _logger.Log($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
         }
-        
-        public void ReceiveRequestFromServer(IRequest request)
-        {
-            _receivedRequests.Enqueue(request);
-            _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
-        }
-        
+
         private void HandleReceivedRequests()
         {
             if (_receivedRequests.IsEmpty) return;
@@ -155,11 +157,11 @@ namespace Bricks.Hometask.Sandbox
                     if (_operationsBuffer.IsEmpty) continue;
 
                     // if no subscriber (server) attached do not send operations
-                    if (OperationSent == null) continue;
+                    if (RequestSent == null) continue;
 
                     // send new bunch of operations from buffer if no awaiting operations
-                    Request request = new Request(ClientId, _revision, _operationsBuffer.ToList());
-                    OperationSent.Invoke(request);
+                    IRequest request = RequestFactory.CreateRequest(ClientId, _revision, _operationsBuffer.ToList());
+                    RequestSent.Invoke(request);
 
                     _awaitingRequests.Enqueue(request);
                     _operationsBuffer.Clear();
@@ -197,8 +199,8 @@ namespace Bricks.Hometask.Sandbox
                     break;
                 case OperationType.Update:
                     OperationProcessor.UpdateOperation(_data, operation);
-                    _operationsBuffer.Enqueue(new Operation(OperationType.Delete, operation.Index, operation.ClientId));
-                    _operationsBuffer.Enqueue(new Operation(OperationType.Insert, operation.Index, operation.ClientId, operation.Value));
+                    _operationsBuffer.Enqueue(OperationFactory.CreateOperation(OperationType.Delete, operation.Index, operation.ClientId, timestamp: operation.Timestamp));
+                    _operationsBuffer.Enqueue(OperationFactory.CreateOperation(OperationType.Insert, operation.Index, operation.ClientId, operation.Value, timestamp: operation.Timestamp));
                     break;
                 case OperationType.Delete:
                     OperationProcessor.DeleteOperation(_data, operation);

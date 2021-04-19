@@ -2,6 +2,8 @@ using System.Collections.Generic;
 
 namespace Bricks.Hometask.Sandbox
 {
+    public delegate void BroadcastEventHandler(IRequest request);
+
     public interface IServer
     {
         /// <summary>Gets current server state.</summary>
@@ -23,5 +25,9 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Unregisters a client within the server.</summary>
         /// <param name="client">Client object instance.</param>
         public void UnregisterClient(IClient client);
+
+
+        /// <summary>An event that occurs when the server emits a new request.</summary>
+        public event BroadcastEventHandler BroadcastRequest;
     }
 }

@@ -19,7 +19,7 @@ namespace Bricks.Hometask.Sandbox
 
             for (int i = 0; i < numberOfClients; i++)
             {
-                Client client = new Client(i + 1);
+                Client client = new Client(server, i + 1);
                 clients.Add(client);
 
                 server.RegisterClient(client);

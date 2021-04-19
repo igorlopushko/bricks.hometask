@@ -2,8 +2,8 @@ using System.Collections.Generic;
 
 namespace Bricks.Hometask.Sandbox
 {
-    public delegate void OperationSentEventHandler(Request request);
-    
+    public delegate void RequestSentEventHandler(IRequest request);
+
     public interface IClient
     {
         /// <summary>Gets client unique identifier.</summary>
@@ -23,15 +23,11 @@ namespace Bricks.Hometask.Sandbox
         /// <param name="revision">Last synced revision number.</param>
         public void SyncData(IEnumerable<int> data, int revision);
         
-        /// <summary>Receives request from server to sync the state.</summary>
-        /// <param name="request">Request operation entity.</param>
-        public void ReceiveRequestFromServer(IRequest request);
-        
         /// <summary>Receives operation from external world.</summary>
         /// <param name="operation">Operation instance to be processed.</param>
         public void PushOperation(IOperation operation);
         
-        /// <summary>An event that occurs when operation is sent to the server.</summary>
-        public event OperationSentEventHandler OperationSent;
+        /// <summary>An event that occurs when a new request is sent to the server.</summary>
+        public event RequestSentEventHandler RequestSent;
     }
 }

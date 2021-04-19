@@ -15,16 +15,19 @@ namespace Bricks.Hometask.Sandbox
                 throw new NullReferenceException(message);
             }
 
-            if (operation.Index < 0 || operation.Index > data.Count())
+            if((operation.Index > -1 && operation.Index < data.Count()) || operation.Index == 0)
             {
+                data.Insert(operation.Index, operation.Value.Value);
+            } 
+            else 
+            {
+                //data.Insert(operation.Index - 1, operation.Value.Value);
                 string message = $"Can't insert value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}' " +
                                                       $"at index: '{operation.Index}', " +
                                                       $"operation timestamp: '{operation.Timestamp}'";
                 Log(message);
                 throw new ArgumentOutOfRangeException(message);
             }
-            
-            data.Insert(operation.Index, operation.Value.Value);
         }
 
         public static void UpdateOperation(IList<int> data, IOperation operation)
@@ -50,13 +53,17 @@ namespace Bricks.Hometask.Sandbox
         
         public static void DeleteOperation(IList<int> data, IOperation operation)
         {
-            if (data.Count == 0 || operation.Index < 0 || operation.Index >= data.Count)
+            if (data.Count != 0 && operation.Index > -1 && operation.Index < data.Count)
             {
+                data.RemoveAt(operation.Index);
+            }
+            else
+            {
+                //data.RemoveAt(operation.Index - 1);                
                 string message = $"Can't delete item at index: '{operation.Index}', operation timestamp: '{operation.Timestamp}'";
                 Log(message);
                 throw new ArgumentOutOfRangeException(message);
             }
-            data.RemoveAt(operation.Index);
         }
 
         private static void Log(string text)

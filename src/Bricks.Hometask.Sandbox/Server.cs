@@ -45,7 +45,9 @@ namespace Bricks.Hometask.Sandbox
                 }
             }
         }
-        
+
+        public event BroadcastEventHandler BroadcastRequest;
+
         /// <summary>Constructor.</summary>
         public Server()
         {
@@ -72,7 +74,7 @@ namespace Bricks.Hometask.Sandbox
             // unsubscribe all clients
             foreach (IClient c in _clients.Values)
             {
-                c.OperationSent -= ReceivedClientRequestEventHandler;
+                c.RequestSent -= ReceivedClientRequestEventHandler;
             }
 
             // wait until all awaiting requests are processed.
@@ -103,7 +105,7 @@ namespace Bricks.Hometask.Sandbox
 
             if (_clients.TryAdd(client.ClientId, client))
             {
-                client.OperationSent += ReceivedClientRequestEventHandler;
+                client.RequestSent += ReceivedClientRequestEventHandler;
                 client.SyncData(this.Data, this.Revision);
 
                 // logging                
@@ -128,7 +130,7 @@ namespace Bricks.Hometask.Sandbox
 
             if (_clients.TryRemove(client.ClientId, out IClient removedClient))
             {
-                removedClient.OperationSent -= ReceivedClientRequestEventHandler;
+                removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
                 // logging
                 _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
@@ -140,7 +142,7 @@ namespace Bricks.Hometask.Sandbox
             }
         }
 
-        private void ReceivedClientRequestEventHandler(Request request)
+        private void ReceivedClientRequestEventHandler(IRequest request)
         {
             lock (_locker)
             {
@@ -173,19 +175,16 @@ namespace Bricks.Hometask.Sandbox
                     _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
-                    IRequest acknowledgedRequest = new Request(
+                    IRequest acknowledgedRequest = RequestFactory.CreateRequest(
                         transformedRequest.ClientId, 
                         _revision + 1,
                         transformedRequest.Operations.ToList(), 
                         true);
 
                     // broadcast operations to other clients
-                    foreach (IClient c in _clients.Values)
+                    if (BroadcastRequest != null)
                     {
-                        c.ReceiveRequestFromServer(acknowledgedRequest);
-
-                        // logging
-                        _logger.Log($"Message is sent by Server to Client with ID: '{c.ClientId}'");
+                        BroadcastRequest.Invoke(acknowledgedRequest);
                     }
 
                     // increment local revision
@@ -214,7 +213,7 @@ namespace Bricks.Hometask.Sandbox
                 List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
                 transformedOperations.Clear();
                 transformedOperations.AddRange(temp);
-                tempRequest = new Request(tempRequest.ClientId, revision, transformedOperations);
+                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
             }
 
             return tempRequest;
