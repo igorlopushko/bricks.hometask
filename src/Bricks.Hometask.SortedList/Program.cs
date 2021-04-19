@@ -1,12 +1,10 @@
-﻿using System;
-
-namespace Bricks.Hometask.SortedList
+﻿namespace Bricks.Hometask.SortedList.Console
 {
     class Program
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("Hello World!");
+            System.Console.WriteLine("Hello World!");
         }
     }
 }

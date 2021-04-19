@@ -3,13 +3,13 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 16
 VisualStudioVersion = 16.0.31112.23
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bricks.Hometask.OperationTransformation", "Bricks.Hometask.Sandbox\Bricks.Hometask.OperationTransformation.csproj", "{C0EC5C39-E7F5-4E95-82B0-B6272D93BF90}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bricks.Hometask.OperationTransformation.Console", "Bricks.Hometask.Sandbox\Bricks.Hometask.OperationTransformation.Console.csproj", "{C0EC5C39-E7F5-4E95-82B0-B6272D93BF90}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.Hometask.SortedList", "Bricks.Hometask.SortedList\Bricks.Hometask.SortedList.csproj", "{E6573D1F-ACB2-419C-B753-A8F1717EF830}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bricks.Hometask.SortedList.Console", "Bricks.Hometask.SortedList\Bricks.Hometask.SortedList.Console.csproj", "{E6573D1F-ACB2-419C-B753-A8F1717EF830}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.Hometask.Base", "Bricks.Hometask.Base\Bricks.Hometask.Base.csproj", "{EAB382B4-4CA6-4FA8-AC8E-A6EA2586404B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bricks.Hometask.Base", "Bricks.Hometask.Base\Bricks.Hometask.Base.csproj", "{EAB382B4-4CA6-4FA8-AC8E-A6EA2586404B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Bricks.Hometask.Utility", "Bricks.Hometask.Utility\Bricks.Hometask.Utility.csproj", "{A5255FC7-67F5-44BE-83FA-5493A6AC32C3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Bricks.Hometask.Utility", "Bricks.Hometask.Utility\Bricks.Hometask.Utility.csproj", "{A5255FC7-67F5-44BE-83FA-5493A6AC32C3}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

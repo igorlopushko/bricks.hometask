@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bricks.Hometask.SortedList
+namespace Bricks.Hometask.SortedList.Console
 {
     public class Client<T> : IClient<T>
     {

@@ -6,7 +6,7 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.OperationTransformation.Console
 {
     public class Client<T> : IClient<T>
     {

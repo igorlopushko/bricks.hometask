@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace Bricks.Hometask.SortedList
+namespace Bricks.Hometask.SortedList.Console
 {
     public class Server<T> : IServer<T>
     {

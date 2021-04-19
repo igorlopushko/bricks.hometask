@@ -5,20 +5,23 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.OperationTransformation.Console
 {
     class Program
     {
         static void Main(string[] args)
         {
+            // setup clients and number of operations
             int operationsCount = 5;
             int numberOfClients = 10;
+
             List<IClient<int>> clients = new List<IClient<int>>();
             List<Task> clientTasks = new List<Task>();
             Server<int> server = new Server<int>();
             
             Task.Run(() => server.Run());
 
+            // run clients and execute operations
             for (int i = 0; i < numberOfClients; i++)
             {
                 Client<int> client = new Client<int>(server, i + 1);
@@ -40,7 +43,7 @@ namespace Bricks.Hometask.OperationTransformation
             }
             Task.WaitAll(clientTasks.ToArray());            
 
-            // sleed to sync all the data
+            // sleep to sync all the data
             Thread.Sleep(System.TimeSpan.FromSeconds(20));
             server.Stop();
 
@@ -52,7 +55,7 @@ namespace Bricks.Hometask.OperationTransformation
 
             PrintServer(server);
 
-            Console.ReadLine();
+            System.Console.ReadLine();
         }
 
         private static void PushOperationsToClient(IClient<int> client, int operationsCount)
@@ -66,29 +69,29 @@ namespace Bricks.Hometask.OperationTransformation
                 client.PushOperation(operation);
             }
 
-            Console.WriteLine($"Client '{client.ClientId}' finished processing");
+            System.Console.WriteLine($"Client '{client.ClientId}' finished processing");
         }
 
         private static void PrintClient(IClient<int> client)
         {
-            Console.WriteLine();
-            Console.WriteLine($"Client with ID: '{client.ClientId}' data set:");
+            System.Console.WriteLine();
+            System.Console.WriteLine($"Client with ID: '{client.ClientId}' data set:");
             foreach (int d in client.Data)
             {
-                Console.WriteLine(d);
+                System.Console.WriteLine(d);
             }
-            Console.WriteLine();
+            System.Console.WriteLine();
         }
 
         private static void PrintServer(IServer<int> server)
         {
-            Console.WriteLine();
-            Console.WriteLine($"Server data set:");
+            System.Console.WriteLine();
+            System.Console.WriteLine($"Server data set:");
             foreach (int d in server.Data)
             {
-                Console.WriteLine(d);
+                System.Console.WriteLine(d);
             }
-            Console.WriteLine();
+            System.Console.WriteLine();
         }
     }
 }

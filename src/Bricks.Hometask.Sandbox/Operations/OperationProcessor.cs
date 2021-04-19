@@ -3,7 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.OperationTransformation.Console
 {
     public static class OperationProcessor<T>
     {
@@ -72,7 +72,7 @@ namespace Bricks.Hometask.OperationTransformation
 
         private static void Log(string text)
         {            
-            Console.WriteLine(text);
+            System.Console.WriteLine(text);
         }
     }
 }
