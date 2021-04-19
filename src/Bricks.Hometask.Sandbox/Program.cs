@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -31,7 +30,7 @@ namespace Bricks.Hometask.Sandbox
             }
 
             Task.WaitAll(clientTasks.ToArray());
-            //server.Stop();
+            server.Stop();
 
             //Task.WaitAll(serverTask);
 
@@ -62,6 +61,7 @@ namespace Bricks.Hometask.Sandbox
                 IOperation operation = OperationRandomGenerator.GenerateRandomOperation(client);
                 client.PushOperation(operation);
 
+                // generate new operation 5 times per second
                 Thread.Sleep(System.TimeSpan.FromMilliseconds(200));
             }
 

@@ -10,14 +10,18 @@ namespace Bricks.Hometask.Sandbox
         {
             if (!operation.Value.HasValue)
             {
-                throw new NullReferenceException($"Can't insert NULL value with operation timestamp: {operation.Timestamp}");
+                string message = $"Can't insert NULL value with operation timestamp: {operation.Timestamp}";
+                Log(message);
+                throw new NullReferenceException(message);
             }
 
             if (operation.Index < 0 || operation.Index > data.Count())
             {
-                throw new ArgumentOutOfRangeException($"Can't insert value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}' " +
+                string message = $"Can't insert value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}' " +
                                                       $"at index: '{operation.Index}', " +
-                                                      $"operation timestamp: '{operation.Timestamp}'");
+                                                      $"operation timestamp: '{operation.Timestamp}'";
+                Log(message);
+                throw new ArgumentOutOfRangeException(message);
             }
             
             data.Insert(operation.Index, operation.Value.Value);
@@ -27,14 +31,18 @@ namespace Bricks.Hometask.Sandbox
         {
             if (!operation.Value.HasValue)
             {
-                throw new NullReferenceException($"Can't update NULL value with operation timestamp: {operation.Timestamp}");
+                string message = $"Can't update NULL value with operation timestamp: {operation.Timestamp}";
+                Log(message);
+                throw new NullReferenceException(message);
             }
             
             if (operation.Index < 0 || operation.Index > data.Count)
             {
-                throw new ArgumentOutOfRangeException($"Can't update element at index: '{operation.Index}' " +
-                                                      $"with value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}', " +
-                                                      $"operation timestamp: '{operation.Timestamp}'");
+                string message = $"Can't update element at index: '{operation.Index}' " +
+                                 $"with value: '{(operation.Value.HasValue ? operation.Value.Value : "NULL")}', " +
+                                 $"operation timestamp: '{operation.Timestamp}'";
+                Log(message);
+                throw new ArgumentOutOfRangeException(message);
             }
             
             data[operation.Index] = operation.Value.Value;
@@ -44,10 +52,18 @@ namespace Bricks.Hometask.Sandbox
         {
             if (data.Count == 0 || operation.Index < 0 || operation.Index >= data.Count)
             {
-                throw new ArgumentOutOfRangeException($"Can't delete item at index: '{operation.Index}', " +
-                                                      $"operation timestamp: '{operation.Timestamp}'");
+                string message = $"Can't delete item at index: '{operation.Index}', operation timestamp: '{operation.Timestamp}'";
+                Log(message);
+                throw new ArgumentOutOfRangeException(message);
             }
             data.RemoveAt(operation.Index);
+        }
+
+        private static void Log(string text)
+        {
+            Console.BackgroundColor = ConsoleColor.White;
+            Console.WriteLine(text);
+            Console.ResetColor();
         }
     }
 }

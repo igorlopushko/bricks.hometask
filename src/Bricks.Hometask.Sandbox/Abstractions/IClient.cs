@@ -12,9 +12,6 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Gets current client state.</summary>
         public IEnumerable<int> Data { get; }
         
-        /// <summary>Gets current client revision number.</summary>
-        public int Revision { get; }
-        
         /// <summary>Runs client.</summary>
         public void Run();
 
@@ -26,9 +23,9 @@ namespace Bricks.Hometask.Sandbox
         /// <param name="revision">Last synced revision number.</param>
         public void SyncData(IEnumerable<int> data, int revision);
         
-        /// <summary>Receives operations from server to sync the state.</summary>
+        /// <summary>Receives request from server to sync the state.</summary>
         /// <param name="request">Request operation entity.</param>
-        public void ReceiveRequestsFromServer(IRequest request);
+        public void ReceiveRequestFromServer(IRequest request);
         
         /// <summary>Receives operation from external world.</summary>
         /// <param name="operation">Operation instance to be processed.</param>

@@ -63,10 +63,7 @@ namespace Bricks.Hometask.Sandbox
         /// <summary>Runs server.</summary>
         public void Run()
         {
-            while (true)
-            {
-                ProcessRequests(_token);
-            }
+            ProcessRequests(_token);
         }
 
         /// <summary>Stops server's execution.</summary>
@@ -185,7 +182,7 @@ namespace Bricks.Hometask.Sandbox
                     // broadcast operations to other clients
                     foreach (IClient c in _clients.Values)
                     {
-                        c.ReceiveRequestsFromServer(acknowledgedRequest);
+                        c.ReceiveRequestFromServer(acknowledgedRequest);
 
                         // logging
                         _logger.Log($"Message is sent by Server to Client with ID: '{c.ClientId}'");
@@ -195,8 +192,6 @@ namespace Bricks.Hometask.Sandbox
                     _revision++;
                 }
             }
-
-            _logger.Log("Exit ProcessRequests");
         }
 
         private IRequest TransformRequest(IRequest request)

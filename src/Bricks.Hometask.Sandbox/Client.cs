@@ -36,17 +36,6 @@ namespace Bricks.Hometask.Sandbox
                 }
             }
         }
-        
-        public int Revision
-        {
-            get
-            {
-                lock(_locker)
-                {
-                    return _revision;
-                }
-            }
-        }
 
         public event OperationSentEventHandler OperationSent;
         
@@ -110,7 +99,7 @@ namespace Bricks.Hometask.Sandbox
             _logger.Log($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
         }
         
-        public void ReceiveRequestsFromServer(IRequest request)
+        public void ReceiveRequestFromServer(IRequest request)
         {
             _receivedRequests.Enqueue(request);
             _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
@@ -133,18 +122,21 @@ namespace Bricks.Hometask.Sandbox
                     // logging
                     _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
                     return;
-                }
+                }                
 
                 // transform operations in buffer over the received messages
-                List<IOperation> operations =
-                    OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
-                _operationsBuffer.Clear();
-                foreach (IOperation operation in operations)
+                if (!_operationsBuffer.IsEmpty)
                 {
-                    _operationsBuffer.Enqueue(operation);
+                    List<IOperation> transformedOperations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
+                    _operationsBuffer.Clear();
+                    foreach (IOperation operation in transformedOperations)
+                    {
+                        _operationsBuffer.Enqueue(operation);
+                    }                    
                 }
+                _revision = r.Revision;
 
-                ApplyOperations(r.Operations.ToList());
+                ApplyOperations(r.Operations.ToList());                
 
                 _logger.Log($"Client with ID: '{ClientId}' processed incoming request");
             }

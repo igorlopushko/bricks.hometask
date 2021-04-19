@@ -5,15 +5,6 @@ namespace Bricks.Hometask.Sandbox
     public static class RandomGenerator
     {
         private static readonly Random GetRandom = new Random();
-
-        /// <summary>Gets random delay in specified time range.</summary>
-        /// <param name="minMilliseconds">Min value in milliseconds.</param>
-        /// <param name="maxMilliseconds">Max value in milliseconds.</param>
-        /// <returns>Random delay in milliseconds.</returns>
-        public static int GetDelay(int minMilliseconds, int maxMilliseconds)
-        {
-            return GetNumber(minMilliseconds, maxMilliseconds);
-        }
         
         /// <summary>Gets random integer number in specified range.</summary>
         /// <param name="min">Min possible value.</param>
