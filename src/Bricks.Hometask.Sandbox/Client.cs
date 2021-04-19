@@ -4,14 +4,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public class Client<T> : IClient<T>
     {
         private readonly object _locker = new object();
 
-        private readonly System.ConsoleColor _color = System.ConsoleColor.White;
+        private readonly System.ConsoleColor _color = System.ConsoleColor.Blue;
         private readonly ConsoleLogger _logger;
+
+        private IServer<T> _server;
 
         private IList<T> _data;
         private int _revision;
@@ -50,7 +52,8 @@ namespace Bricks.Hometask.Sandbox
             _receivedRequests = new ConcurrentQueue<IRequest<T>>();
             _logger = new ConsoleLogger(_color);
 
-            server.BroadcastRequest += Server_BroadcastRequest;
+            _server = server;
+            _server.BroadcastRequest += Server_BroadcastRequest;
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
@@ -90,7 +93,18 @@ namespace Bricks.Hometask.Sandbox
         
         public void Stop()
         {
+            if (_awaitingRequests.Count() != 0 || _operationsBuffer.Count() != 0)
+            {
+                _logger.Log($"Trying to stop Client with ID: '{ClientId}'");
+                while (_awaitingRequests.Count() != 0 || _operationsBuffer.Count() != 0)
+                {
+                    Thread.Sleep(100);
+                }
+            }
+
             _tokenSource.Cancel();
+
+            _server.BroadcastRequest -= Server_BroadcastRequest;
 
             // logging
             _logger.Log($"Client with ID: '{ClientId}' has been stopped");

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public delegate void BroadcastEventHandler<T>(IRequest<T> request);
 

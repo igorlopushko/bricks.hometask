@@ -3,14 +3,14 @@ using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     class Program
     {
         static void Main(string[] args)
         {
             int operationsCount = 5;
-            int numberOfClients = 3;
+            int numberOfClients = 10;
             List<IClient<int>> clients = new List<IClient<int>>();
             List<Task> clientTasks = new List<Task>();
             Server<int> server = new Server<int>();
@@ -29,21 +29,20 @@ namespace Bricks.Hometask.Sandbox
                 clientTasks.Add(t);
             }
 
-            Task.WaitAll(clientTasks.ToArray());
+            Task.WaitAll(clientTasks.ToArray());            
+            
+            clientTasks.Clear();
+            foreach (IClient<int> c in clients)
+            {
+                clientTasks.Add(Task.Run(() => c.Stop()));
+            }
+            Task.WaitAll(clientTasks.ToArray());            
+
+            // sleed to sync all the data
+            Thread.Sleep(System.TimeSpan.FromSeconds(20));
             server.Stop();
 
-            //Task.WaitAll(serverTask);
-
-            Console.WriteLine("Sync data");
-            Thread.Sleep(System.TimeSpan.FromSeconds(1));
-            
-            /*
-            foreach (IClient c in clients)
-            {
-                c.Stop();
-            }
-            */
-            
+            // print clients data
             foreach (IClient<int> c in clients)
             {
                 PrintClient(c);
@@ -58,11 +57,11 @@ namespace Bricks.Hometask.Sandbox
         {            
             for (int i = 0; i < operationsCount; i++)
             {
-                IOperation<int> operation = OperationRandomGenerator.GenerateRandomOperation(client);
-                client.PushOperation(operation);
-
                 // generate new operation 5 times per second
                 Thread.Sleep(System.TimeSpan.FromMilliseconds(200));
+
+                IOperation<int> operation = OperationRandomGenerator.GenerateRandomOperation(client);
+                client.PushOperation(operation);
             }
 
             Console.WriteLine($"Client '{client.ClientId}' finished processing");

@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public static class OperationTransformer<T>
     {

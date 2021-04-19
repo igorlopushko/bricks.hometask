@@ -1,6 +1,6 @@
 using System;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public class Operation<T> : IOperation<T>
     {

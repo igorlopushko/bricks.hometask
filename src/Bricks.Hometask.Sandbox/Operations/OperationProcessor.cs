@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public static class OperationProcessor<T>
     {
@@ -53,6 +53,9 @@ namespace Bricks.Hometask.Sandbox
         
         public static void DeleteOperation(IList<T> data, IOperation<T> operation)
         {
+            // Skip delete if data is empty. It might happen update occured in another client and transformed to Delete/Insert.
+            if (data.Count == 0 && operation.Index == 0) return;
+
             if (data.Count != 0 && operation.Index > -1 && operation.Index < data.Count)
             {
                 data.RemoveAt(operation.Index);
@@ -67,10 +70,8 @@ namespace Bricks.Hometask.Sandbox
         }
 
         private static void Log(string text)
-        {
-            Console.BackgroundColor = ConsoleColor.White;
+        {            
             Console.WriteLine(text);
-            Console.ResetColor();
         }
     }
 }

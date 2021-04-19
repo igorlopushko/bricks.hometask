@@ -1,4 +1,4 @@
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public interface IOperation<T>
     {

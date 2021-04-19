@@ -1,6 +1,6 @@
 ﻿using System.Collections.Generic;
 
-namespace Bricks.Hometask.Sandbox
+namespace Bricks.Hometask.OperationTransformation
 {
     public class RequestFactory<T>
     {
