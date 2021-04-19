@@ -1,4 +1,4 @@
-﻿namespace Bricks.Hometask.OperationTransformation
+﻿namespace Bricks.Hometask.Base
 {
     public class OperationFactory<T>
     {

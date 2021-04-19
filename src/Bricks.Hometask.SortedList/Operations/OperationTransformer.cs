@@ -2,7 +2,7 @@ using Bricks.Hometask.Base;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.SortedList
 {
     public static class OperationTransformer<T>
     {

@@ -1,6 +1,6 @@
 using System.Collections.Generic;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
     public delegate void RequestSentEventHandler<T>(IRequest<T> request);
 

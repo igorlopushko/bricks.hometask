@@ -1,6 +1,6 @@
 using System;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
     public class Operation<T> : IOperation<T>
     {
@@ -28,12 +28,5 @@ namespace Bricks.Hometask.OperationTransformation
                 Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
             }
         }
-    }
-
-    public enum OperationType
-    {
-        Insert,
-        Update,
-        Delete
     }
 }

@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net5.0</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Bricks.Hometask.Base\Bricks.Hometask.Base.csproj" />
+    <ProjectReference Include="..\Bricks.Hometask.Utility\Bricks.Hometask.Utility.csproj" />
+  </ItemGroup>
+
+</Project>

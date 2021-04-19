@@ -6,7 +6,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.SortedList
 {
     public class Server<T> : IServer<T>
     {

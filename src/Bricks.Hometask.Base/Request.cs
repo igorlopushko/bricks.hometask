@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
     public class Request<T> : IRequest<T>
     {

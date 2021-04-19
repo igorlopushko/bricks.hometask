@@ -1,4 +1,4 @@
-﻿namespace Bricks.Hometask.OperationTransformation
+﻿namespace Bricks.Hometask.Utility
 {
     public class ConsoleLogger
     {
