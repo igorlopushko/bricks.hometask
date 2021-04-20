@@ -76,6 +76,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         private static void Log(string text)
         {            
             System.Console.WriteLine(text);
+            System.Console.Beep();
         }
     }
 }

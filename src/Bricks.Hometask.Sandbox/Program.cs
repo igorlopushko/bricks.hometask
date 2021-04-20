@@ -11,7 +11,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         {
             // setup clients and number of operations
             int operationsCount = 5;
-            int numberOfClients = 20;
+            int numberOfClients = 3;
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
