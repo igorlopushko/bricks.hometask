@@ -8,28 +8,28 @@ using System.Threading;
 
 namespace Bricks.Hometask.OperationTransformation.Console
 {
-    public class Server<T> : IServer<T>
+    public class Server : IServer
     {
         private readonly object _locker = new object();
 
         private readonly System.ConsoleColor _color = System.ConsoleColor.Red;
         private readonly ConsoleLogger _logger;
 
-        private readonly ConcurrentQueue<IRequest<T>> _awaitingRequests;
-        private readonly ConcurrentDictionary<int, List<IOperation<T>>> _revisionLog;
-        private readonly ConcurrentDictionary<int, IClient<T>> _clients;
-        private readonly IList<T> _data;
+        private readonly ConcurrentQueue<IRequest> _awaitingRequests;
+        private readonly ConcurrentDictionary<int, List<IOperation>> _revisionLog;
+        private readonly ConcurrentDictionary<int, IClient> _clients;
+        private readonly IList<int> _data;
         private int _revision;
         private CancellationTokenSource _tokenSource;
         private CancellationToken _token;
                 
-        public IEnumerable<T> Data
+        public IEnumerable<int> Data
         {
             get
             {
                 lock(_locker)
                 {
-                    foreach(T item in _data)
+                    foreach(int item in _data)
                     {
                         yield return item;
                     }
@@ -48,15 +48,15 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
         }
 
-        public event BroadcastEventHandler<T> BroadcastRequest;
+        public event BroadcastEventHandler BroadcastRequest;
 
         /// <summary>Constructor.</summary>
         public Server()
         {
-            _clients = new ConcurrentDictionary<int, IClient<T>>();
-            _data = new List<T>();
-            _awaitingRequests = new ConcurrentQueue<IRequest<T>>();
-            _revisionLog = new ConcurrentDictionary<int, List<IOperation<T>>>();
+            _clients = new ConcurrentDictionary<int, IClient>();
+            _data = new List<int>();
+            _awaitingRequests = new ConcurrentQueue<IRequest>();
+            _revisionLog = new ConcurrentDictionary<int, List<IOperation>>();
             _revision = 0;
             _logger = new ConsoleLogger(_color);
 
@@ -74,7 +74,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         public void Stop()
         {
             // unsubscribe all clients
-            foreach (IClient<T> c in _clients.Values)
+            foreach (IClient c in _clients.Values)
             {
                 c.RequestSent -= ReceivedClientRequestEventHandler;
             }
@@ -95,7 +95,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
             _logger.Log($"Server has been stopped.");
         }
                 
-        public void RegisterClient(IClient<T> client)
+        public void RegisterClient(IClient client)
         {
             if (_clients.ContainsKey(client.ClientId))
             {
@@ -120,7 +120,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
         }
                 
-        public void UnregisterClient(IClient<T> client)
+        public void UnregisterClient(IClient client)
         {
             if (!_clients.ContainsKey(client.ClientId))
             {
@@ -130,7 +130,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 return;
             }
 
-            if (_clients.TryRemove(client.ClientId, out IClient<T> removedClient))
+            if (_clients.TryRemove(client.ClientId, out IClient removedClient))
             {
                 removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
@@ -144,7 +144,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
         }
 
-        private void ReceivedClientRequestEventHandler(IRequest<T> request)
+        private void ReceivedClientRequestEventHandler(IRequest request)
         {
             lock (_locker)
             {
@@ -163,12 +163,12 @@ namespace Bricks.Hometask.OperationTransformation.Console
             while (!token.IsCancellationRequested)
             {
                 // process all incoming request from the queue
-                if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest<T> request)) continue;
+                if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest request)) continue;
                 
                 lock (_locker)
                 {
                     // transform request operations according to the current server state
-                    IRequest<T> transformedRequest = TransformRequest(request);
+                    IRequest transformedRequest = TransformRequest(request);
 
                     // apply operations over the server data document
                     ApplyOperations(transformedRequest);
@@ -177,7 +177,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
                     _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
-                    IRequest<T> acknowledgedRequest = RequestFactory<T>.CreateRequest(
+                    IRequest acknowledgedRequest = RequestFactory.CreateRequest(
                         transformedRequest.ClientId, 
                         _revision + 1,
                         transformedRequest.Operations.ToList(), 
@@ -195,43 +195,43 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
         }
 
-        private IRequest<T> TransformRequest(IRequest<T> request)
+        private IRequest TransformRequest(IRequest request)
         {
             if (request.Revision == _revision) return request;
             if (request.Revision > _revision) throw new System.ApplicationException("Request revision is ahead of server revision.");
 
-            IRequest<T> tempRequest = request;
+            IRequest tempRequest = request;
             
             // get operations from revision log since request revision number
             var logOperations = _revisionLog
                 .Where(pair => pair.Key > tempRequest.Revision)
                 .OrderBy(pair => pair.Key).ToList();
 
-            List<IOperation<T>> transformedOperations = new List<IOperation<T>>();
+            List<IOperation> transformedOperations = new List<IOperation>();
             transformedOperations.AddRange(tempRequest.Operations);
 
             foreach (var (revision, operations) in logOperations)
             {
-                List<IOperation<T>> temp = OperationTransformer<T>.Transform(transformedOperations, operations).ToList();
+                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
                 transformedOperations.Clear();
                 transformedOperations.AddRange(temp);
-                tempRequest = RequestFactory<T>.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
+                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
             }
 
             return tempRequest;
         }
 
-        private void ApplyOperations(IRequest<T> request)
+        private void ApplyOperations(IRequest request)
         {
-            foreach (IOperation<T> operation in request.Operations)
+            foreach (IOperation operation in request.Operations)
             {
                 switch (operation.OperationType)
                 {
                     case OperationType.Insert:
-                        OperationProcessor<T>.InsertOperation(_data, operation);
+                        OperationProcessor.InsertOperation(_data, operation);
                         break;
                     case OperationType.Delete:
-                        OperationProcessor<T>.DeleteOperation(_data, operation);
+                        OperationProcessor.DeleteOperation(_data, operation);
                         break;
                     default:
                         throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");

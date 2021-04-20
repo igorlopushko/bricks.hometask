@@ -5,21 +5,25 @@ using System.Linq;
 
 namespace Bricks.Hometask.OperationTransformation.Console
 {
-    public static class OperationProcessor<T>
+    public static class OperationProcessor
     {
-        public static void InsertOperation(IList<T> data, IOperation<T> operation)
+        public static void InsertOperation(IList<int> data, IOperation operation)
         {
-            if (operation.Value == null)
+            if (!operation.Value.HasValue)
             {
                 string message = $"Can't insert NULL value with operation timestamp: {operation.Timestamp}";
                 Log(message);
                 throw new NullReferenceException(message);
             }
-
-            if((operation.Index > -1 && operation.Index < data.Count()) || operation.Index == 0)
+            
+            if (operation.Index == data.Count())
             {
-                data.Insert(operation.Index, operation.Value);
-            } 
+                data.Add(operation.Value.Value);
+            }
+            else if (operation.Index > -1 && operation.Index < data.Count())
+            {
+                data.Insert(operation.Index, operation.Value.Value);
+            }
             else 
             {
                 //data.Insert(operation.Index - 1, operation.Value.Value);
@@ -31,9 +35,9 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
         }
 
-        public static void UpdateOperation(IList<T> data, IOperation<T> operation)
+        public static void UpdateOperation(IList<int> data, IOperation operation)
         {
-            if (operation.Value == null)
+            if (!operation.Value.HasValue)
             {
                 string message = $"Can't update NULL value with operation timestamp: {operation.Timestamp}";
                 Log(message);
@@ -49,13 +53,13 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 throw new ArgumentOutOfRangeException(message);
             }
             
-            data[operation.Index] = operation.Value;
+            data[operation.Index] = operation.Value.Value;
         }
         
-        public static void DeleteOperation(IList<T> data, IOperation<T> operation)
+        public static void DeleteOperation(IList<int> data, IOperation operation)
         {
             // Skip delete if data is empty. It might happen update occured in another client and transformed to Delete/Insert.
-            if (data.Count == 0 && operation.Index == 0) return;
+            if (data.Count == 0 || operation.Index > data.Count() - 1) return;
 
             if (data.Count != 0 && operation.Index > -1 && operation.Index < data.Count)
             {
@@ -63,7 +67,6 @@ namespace Bricks.Hometask.OperationTransformation.Console
             }
             else
             {
-                //data.RemoveAt(operation.Index - 1);                
                 string message = $"Can't delete item at index: '{operation.Index}', operation timestamp: '{operation.Timestamp}'";
                 Log(message);
                 throw new ArgumentOutOfRangeException(message);
@@ -73,6 +76,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         private static void Log(string text)
         {            
             System.Console.WriteLine(text);
+            System.Console.Beep();
         }
     }
 }

@@ -1,12 +1,14 @@
+using System;
+
 namespace Bricks.Hometask.Base
 {
-    public interface IOperation<T>
+    public interface IOperation
     {
         /// <summary>Gets operation type.</summary>
         public OperationType OperationType { get; }
         
         /// <summary>Gets operation value.</summary>
-        public T Value { get; }
+        public int? Value { get; }
         
         /// <summary>Gets operation index.</summary>
         public int Index { get; }

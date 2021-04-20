@@ -2,15 +2,15 @@ using System;
 
 namespace Bricks.Hometask.Base
 {
-    public class Operation<T> : IOperation<T>
+    public class Operation : IOperation
     {
         public OperationType OperationType { get; }
-        public T Value { get; }
+        public int? Value { get; }
         public int Index { get; }
         public long Timestamp { get; }
         public int ClientId { get; }
 
-        public Operation(OperationType type, int index, int clientId, T value, long? timestamp = null)
+        public Operation(OperationType type, int index, int clientId, int value, long? timestamp = null)
         {
             OperationType = type;
             Index = index;
