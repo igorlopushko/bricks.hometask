@@ -15,14 +15,14 @@ namespace Bricks.Hometask.OperationTransformation.Console
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
-            Server server = new Server();
+            Server server = new Server(Startup.ConfigurationRoot);
             
             Task.Run(() => server.Run());
 
             // run clients and execute operations
             for (int i = 0; i < numberOfClients; i++)
             {
-                Client client = new Client(server, i + 1);
+                Client client = new Client(server, i + 1, Startup.ConfigurationRoot);
                 clients.Add(client);
 
                 server.RegisterClient(client);
@@ -32,27 +32,25 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 clientTasks.Add(t);
             }
 
-            Task.WaitAll(clientTasks.ToArray());            
-            
-            /*clientTasks.Clear();
-            foreach (IClient c in clients)
+            if (bool.Parse(Startup.ConfigurationRoot["LoggingEnabled"]))
             {
-                clientTasks.Add(Task.Run(() => c.Stop()));
-            }
-            Task.WaitAll(clientTasks.ToArray());
-            */
-
-            // sleep to sync all the data
-            Thread.Sleep(System.TimeSpan.FromSeconds(10));
-            //server.Stop();
-
-            // print clients data
-            foreach (IClient c in clients)
-            {
-                PrintClient(c);
+                Task.WaitAll(clientTasks.ToArray());
             }
 
-            PrintServer(server);
+            while (true)
+            {
+                System.Console.Clear();
+
+                // print clients data
+                foreach (IClient c in clients)
+                {
+                    PrintClient(c);
+                }
+
+                PrintServer(server);
+
+                Thread.Sleep(System.TimeSpan.FromSeconds(1));
+            }
 
             System.Console.ReadLine();
         }

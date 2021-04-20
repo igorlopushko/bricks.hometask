@@ -1,5 +1,6 @@
 using Bricks.Hometask.Base;
 using Bricks.Hometask.Utility;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,14 +23,15 @@ namespace Bricks.Hometask.OperationTransformation.Console
         private int _revision;
         private CancellationTokenSource _tokenSource;
         private CancellationToken _token;
-                
+        private readonly bool _logginEnabled;
+
         public IEnumerable<int> Data
         {
             get
             {
-                lock(_locker)
+                lock (_locker)
                 {
-                    foreach(int item in _data)
+                    foreach (int item in _data)
                     {
                         yield return item;
                     }
@@ -41,7 +43,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         {
             get
             {
-                lock(_locker)
+                lock (_locker)
                 {
                     return _revision;
                 }
@@ -51,7 +53,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
         public event BroadcastEventHandler BroadcastRequest;
 
         /// <summary>Constructor.</summary>
-        public Server()
+        public Server(IConfigurationRoot configuration)
         {
             _clients = new ConcurrentDictionary<int, IClient>();
             _data = new List<int>();
@@ -62,6 +64,20 @@ namespace Bricks.Hometask.OperationTransformation.Console
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+
+            _logginEnabled = bool.Parse(configuration["LoggingEnabled"]);
+        }
+
+        public void Initialize(IList<int> data)
+        {
+            lock (_locker)
+            {
+                _data.Clear();
+                foreach (int item in data)
+                {
+                    _data.Add(item);
+                }
+            }
         }
 
         /// <summary>Runs server.</summary>
@@ -82,26 +98,26 @@ namespace Bricks.Hometask.OperationTransformation.Console
             // wait until all awaiting requests are processed.
             if (!_awaitingRequests.IsEmpty)
             {
-                _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
-                while(!_awaitingRequests.IsEmpty)
+                if (_logginEnabled) _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
+                while (!_awaitingRequests.IsEmpty)
                 {
                     Thread.Sleep(10);
                 }
             }
-            
+
             _clients.Clear();
             _tokenSource.Cancel();
 
-            _logger.Log($"Server has been stopped.");
+            if (_logginEnabled) _logger.Log($"Server has been stopped.");
         }
-                
+
         public void RegisterClient(IClient client)
         {
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
-                
+                if (_logginEnabled) _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
+
                 return;
             }
 
@@ -111,22 +127,22 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 client.SyncData(this.Data, this.Revision);
 
                 // logging                
-                _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
             }
             else
             {
                 // logging
-                _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
-                
+
         public void UnregisterClient(IClient client)
         {
             if (!_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
-                
+                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
+
                 return;
             }
 
@@ -135,12 +151,12 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
                 // logging
-                _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
             }
             else
             {
                 // logging
-                _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
             }
         }
 
@@ -149,13 +165,13 @@ namespace Bricks.Hometask.OperationTransformation.Console
             lock (_locker)
             {
                 _awaitingRequests.Enqueue(request);
-            }            
-            
+            }
+
             // logging
             StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
             str.Append($", revision: '{request.Revision}'");
             str.Append($", operations count: '{request.Operations.Count()}'");
-            _logger.Log(str.ToString());            
+            if (_logginEnabled) _logger.Log(str.ToString());
         }
 
         private void ProcessRequests(CancellationToken token)
@@ -164,23 +180,20 @@ namespace Bricks.Hometask.OperationTransformation.Console
             {
                 // process all incoming request from the queue
                 if (_awaitingRequests.IsEmpty || !_awaitingRequests.TryDequeue(out IRequest request)) continue;
-                
+
                 lock (_locker)
                 {
-                    // transform request operations according to the current server state
-                    IRequest transformedRequest = TransformRequest(request);
-
                     // apply operations over the server data document
-                    ApplyOperations(transformedRequest);
+                    ApplyOperations(request);
 
                     // save operations to the server revision log
-                    _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
+                    _revisionLog.TryAdd(_revision, request.Operations.ToList());
 
                     // acknowledge the request
                     IRequest acknowledgedRequest = RequestFactory.CreateRequest(
-                        transformedRequest.ClientId, 
+                        request.ClientId,
                         _revision + 1,
-                        transformedRequest.Operations.ToList(), 
+                        request.Operations.ToList(),
                         true);
 
                     // broadcast operations to other clients
@@ -193,32 +206,6 @@ namespace Bricks.Hometask.OperationTransformation.Console
                     _revision++;
                 }
             }
-        }
-
-        private IRequest TransformRequest(IRequest request)
-        {
-            if (request.Revision == _revision) return request;
-            if (request.Revision > _revision) throw new System.ApplicationException("Request revision is ahead of server revision.");
-
-            IRequest tempRequest = request;
-            
-            // get operations from revision log since request revision number
-            var logOperations = _revisionLog
-                .Where(pair => pair.Key > tempRequest.Revision)
-                .OrderBy(pair => pair.Key).ToList();
-
-            List<IOperation> transformedOperations = new List<IOperation>();
-            transformedOperations.AddRange(tempRequest.Operations);
-
-            foreach (var (revision, operations) in logOperations)
-            {
-                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
-                transformedOperations.Clear();
-                transformedOperations.AddRange(temp);
-                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
-            }
-
-            return tempRequest;
         }
 
         private void ApplyOperations(IRequest request)

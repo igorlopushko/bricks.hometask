@@ -1,5 +1,6 @@
 using Bricks.Hometask.Base;
 using Bricks.Hometask.Utility;
+using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -22,6 +23,7 @@ namespace Bricks.Hometask.SortedList.Console
         private int _revision;
         private CancellationTokenSource _tokenSource;
         private CancellationToken _token;
+        private readonly bool _logginEnabled;
                 
         public IEnumerable<int> Data
         {
@@ -51,7 +53,7 @@ namespace Bricks.Hometask.SortedList.Console
         public event BroadcastEventHandler BroadcastRequest;
 
         /// <summary>Constructor.</summary>
-        public Server()
+        public Server(IConfigurationRoot configuration)
         {
             _clients = new ConcurrentDictionary<int, IClient>();
             _data = new List<int>();
@@ -62,6 +64,8 @@ namespace Bricks.Hometask.SortedList.Console
 
             _tokenSource = new CancellationTokenSource();
             _token = _tokenSource.Token;
+
+            _logginEnabled = bool.Parse(configuration["LoggingEnabled"]);
         }
 
         public void Initialize(IList<int> data)
@@ -94,7 +98,7 @@ namespace Bricks.Hometask.SortedList.Console
             // wait until all awaiting requests are processed.
             if (!_awaitingRequests.IsEmpty)
             {
-                _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
+                if (_logginEnabled) _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
                 while(!_awaitingRequests.IsEmpty)
                 {
                     Thread.Sleep(10);
@@ -104,7 +108,7 @@ namespace Bricks.Hometask.SortedList.Console
             _clients.Clear();
             _tokenSource.Cancel();
 
-            _logger.Log($"Server has been stopped.");
+            if (_logginEnabled) _logger.Log($"Server has been stopped.");
         }
                 
         public void RegisterClient(IClient client)
@@ -112,7 +116,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
+                if (_logginEnabled) _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
                 
                 return;
             }
@@ -123,12 +127,12 @@ namespace Bricks.Hometask.SortedList.Console
                 client.SyncData(this.Data, this.Revision);
 
                 // logging                
-                _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
             }
             else
             {
                 // logging
-                _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
                 
@@ -137,7 +141,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (!_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
+                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
                 
                 return;
             }
@@ -147,12 +151,12 @@ namespace Bricks.Hometask.SortedList.Console
                 removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
                 // logging
-                _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
             }
             else
             {
                 // logging
-                _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
             }
         }
 
@@ -167,7 +171,7 @@ namespace Bricks.Hometask.SortedList.Console
             StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
             str.Append($", revision: '{request.Revision}'");
             str.Append($", operations count: '{request.Operations.Count()}'");
-            _logger.Log(str.ToString());            
+            if (_logginEnabled) _logger.Log(str.ToString());            
         }
 
         private void ProcessRequests(CancellationToken token)

@@ -96,6 +96,7 @@ namespace Bricks.Hometask.SortedList.Console
         private static void Log(string text)
         {
             System.Console.WriteLine(text);
+            System.Console.Beep();
         }
     }
 }
