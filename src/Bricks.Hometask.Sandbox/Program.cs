@@ -52,6 +52,8 @@ namespace Bricks.Hometask.OperationTransformation.Console
             {
                 System.Console.Clear();
 
+                System.Console.WriteLine($"Operation Transformation algorithm".ToUpper());
+
                 // print clients data
                 foreach (IClient c in clients)
                 {

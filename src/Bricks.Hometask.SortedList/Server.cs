@@ -183,17 +183,20 @@ namespace Bricks.Hometask.SortedList.Console
                 
                 lock (_locker)
                 {
+                    // transform request operations according to the current server state
+                    IRequest transformedRequest = TransformRequest(request);
+
                     // apply operations over the server data document
-                    ApplyOperations(request);
+                    ApplyOperations(transformedRequest);
 
                     // save operations to the server revision log
-                    _revisionLog.TryAdd(_revision, request.Operations.ToList());
+                    _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
 
                     // acknowledge the request
                     IRequest acknowledgedRequest = RequestFactory.CreateRequest(
-                        request.ClientId,
+                        transformedRequest.ClientId,
                         _revision + 1,
-                        request.Operations.ToList(), 
+                        transformedRequest.Operations.ToList(),
                         true);
 
                     // broadcast operations to other clients
@@ -206,6 +209,32 @@ namespace Bricks.Hometask.SortedList.Console
                     _revision++;
                 }
             }
+        }
+
+        private IRequest TransformRequest(IRequest request)
+        {
+            if (request.Revision == _revision) return request;
+            if (request.Revision > _revision) throw new System.ApplicationException("Request revision is ahead of server revision.");
+
+            IRequest tempRequest = request;
+
+            // get operations from revision log since request revision number
+            var logOperations = _revisionLog
+                .Where(pair => pair.Key > tempRequest.Revision)
+                .OrderBy(pair => pair.Key).ToList();
+
+            List<IOperation> transformedOperations = new List<IOperation>();
+            transformedOperations.AddRange(tempRequest.Operations);
+
+            foreach (var (revision, operations) in logOperations)
+            {
+                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
+                transformedOperations.Clear();
+                transformedOperations.AddRange(temp);
+                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
+            }
+
+            return tempRequest;
         }
 
         private void ApplyOperations(IRequest request)

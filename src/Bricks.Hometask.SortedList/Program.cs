@@ -52,6 +52,8 @@ namespace Bricks.Hometask.SortedList.Console
             {
                 System.Console.Clear();
 
+                System.Console.WriteLine($"Merge with sort algorithm".ToUpper());
+
                 // print clients data
                 foreach (IClient c in clients)
                 {

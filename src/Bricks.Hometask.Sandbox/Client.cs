@@ -144,7 +144,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
                     // logging
                     if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
                     return;
-                }                
+                }
 
                 // transform operations in buffer over the received messages
                 if (!_operationsBuffer.IsEmpty)
