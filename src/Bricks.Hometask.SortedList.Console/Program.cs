@@ -104,18 +104,18 @@ namespace Bricks.Hometask.SortedList.Console
                 if(i > serverData.Length - 1 || data[i] != serverData[i])
                 {
                     // print error value
-                    logger.LogWrite(data[i].ToString());
+                    logger.LogWrite(i == 0 ? data[i].ToString() : string.Format("{0,3}", data[i]));
+                    
                     //System.Console.Beep();
                 }
                 else
                 {
                     // print valid value
-                    System.Console.Write(data[i]);
+                    System.Console.Write(i == 0 ? data[i] : string.Format("{0,3}", data[i]));
                 }
 
                 // print delimeter
-                if (i < data.Length - 1)
-                    System.Console.Write(" ");
+                if (i < data.Length - 1) System.Console.Write(" ");
             }
             System.Console.WriteLine();
         }
@@ -123,23 +123,40 @@ namespace Bricks.Hometask.SortedList.Console
         private static void PrintServer(int[] data)
         {
             System.Console.WriteLine();
-            System.Console.WriteLine($"Server data set:");
+            System.Console.WriteLine($"Server data set:");            
             for (int i = 0; i < data.Length; i++)
             {
-                if (i < data.Length - 1)
-                    System.Console.Write(data[i] + " ");
-                else
-                    System.Console.Write(data[i]);
+                StringBuilder text = new StringBuilder();
+                text.Append(i == 0 ? data[i].ToString() : string.Format("{0,3}", data[i]));
+
+                if (i < data.Length - 1) text.Append(' '); 
+
+                System.Console.Write(text.ToString());
             }
+
+            // print indexes
+            System.Console.WriteLine();
+            ConsoleLogger logger = new ConsoleLogger(System.ConsoleColor.Red);
+            for (int i = 0; i < data.Length; i++)
+            {                
+                StringBuilder text = new StringBuilder();
+                text.Append(i == 0 ? i.ToString() : string.Format("{0,3}", i));
+
+                if (i < data.Length - 1) text.Append(' ');
+
+                logger.LogWrite(text.ToString());
+            }
+
             System.Console.WriteLine();
         }
 
         private static void PrintRevisionLog(Dictionary<int, List<IOperation>> revisionLog)
         {
+            System.Console.WriteLine();
             System.Console.WriteLine($"Server revision log:");
             foreach (var item in revisionLog)
             {
-                System.Console.WriteLine($"Revision: {item.Key}, Operataions: ");
+                System.Console.WriteLine($"Revision: #{item.Key}, Operataions: ");
                 foreach (var operation in item.Value)
                 {
                     StringBuilder text = new StringBuilder($"ClientId: '{operation.ClientId}', Type: '{operation.OperationType}', Index: '{operation.Index}'");                    
@@ -147,8 +164,9 @@ namespace Bricks.Hometask.SortedList.Console
                     {
                         text.Append($", Value: '{operation.Value}'");
                     }
-                    System.Console.WriteLine(text.ToString());
+                    System.Console.WriteLine(text.ToString());                    
                 }
+                System.Console.WriteLine();
             }
         }
     }

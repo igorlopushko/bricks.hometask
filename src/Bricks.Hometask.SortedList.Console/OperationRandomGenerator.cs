@@ -11,8 +11,8 @@ namespace Bricks.Hometask.SortedList.Console
         {
             OperationType type = RandomGenerator.GetOperation();
 
-            int minValue = 0;
-            int maxValue = 10;
+            int minValue = 11;
+            int maxValue = 99;
 
             switch (type)
             {
