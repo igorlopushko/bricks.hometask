@@ -8,7 +8,7 @@ namespace Bricks.Hometask.SortedList.Console
 {
     class Program
     {
-        static Task Main(string[] args)
+        static void Main(string[] args)
         {
             // setup clients and number of operations
             int initDataCount = 30;

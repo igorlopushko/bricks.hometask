@@ -64,33 +64,25 @@ namespace Bricks.Hometask.SortedList.Console
 
         private static int FindInsertIndex(int[] array, int key)
         {
-            if (array[0] > key) return 0;
-            if (array[array.Length - 1] < key) return array.Length;
+            // lower and upper bounds
+            int start = 0;
+            int end = array.Length - 1;
 
-            int low = 0;
-            int high = array.Length;
-            int mid = 0;
-
-            while (low <= high)
+            // traverse the search space
+            while (start <= end)
             {
-                mid = (int)((uint)(low + high) >> 1);
-                int midVal = array[mid];
+                int mid = (start + end) / 2;
 
-                if (midVal < key)
-                {
-                    low = mid + 1;
-                }
-                else if (midVal > key)
-                {
-                    high = mid - 1;
-                }
+                // if 'key' is found
+                if (array[mid] == key)
+                    return mid;
+                else if (array[mid] < key)
+                    start = mid + 1;
                 else
-                {
-                    return mid + 1;
-                }
+                    end = mid - 1;
             }
-
-            return mid;
+            
+            return end + 1;
         }
 
         private static void Log(string text)
