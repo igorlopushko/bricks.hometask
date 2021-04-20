@@ -1,6 +1,8 @@
 ﻿using Bricks.Hometask.Base;
+using Bricks.Hometask.Utility;
 using System.Collections.Generic;
 using System.Linq;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,12 +10,16 @@ namespace Bricks.Hometask.SortedList.Console
 {
     class Program
     {
+        private static bool _logginEnabled;
+
         static void Main(string[] args)
         {
+            _logginEnabled = bool.Parse(Startup.ConfigurationRoot["LoggingEnabled"]);
+
             // setup clients and number of operations
-            int initDataCount = 30;
-            int operationsCount = 10;
-            int numberOfClients = 5;
+            int initDataCount = 10;
+            int operationsCount = 5;
+            int numberOfClients = 3;
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
@@ -43,24 +49,29 @@ namespace Bricks.Hometask.SortedList.Console
                 clientTasks.Add(t);
             }
 
-            if (bool.Parse(Startup.ConfigurationRoot["LoggingEnabled"]))
+            if (_logginEnabled)
             {
                 Task.WaitAll(clientTasks.ToArray());
             }
 
             while (true)
             {
-                System.Console.Clear();
+                if (!_logginEnabled)
+                {
+                    System.Console.Clear();
+                }
 
+                System.Console.WriteLine();
                 System.Console.WriteLine($"Merge with sort algorithm".ToUpper());
 
                 // print clients data
                 foreach (IClient c in clients)
                 {
-                    PrintClient(c.ClientId, c.Data.ToArray());
+                    PrintClient(c.ClientId, c.Data.ToArray(), server.Data.ToArray());
                 }
 
                 PrintServer(server.Data.ToArray());
+                PrintRevisionLog(server.RevisionLog);
 
                 Thread.Sleep(System.TimeSpan.FromSeconds(1));
             }
@@ -80,19 +91,31 @@ namespace Bricks.Hometask.SortedList.Console
                 client.PushOperation(operation);
             }
 
-            System.Console.WriteLine($"Client '{client.ClientId}' finished processing");
+            if (_logginEnabled) System.Console.WriteLine($"Client '{client.ClientId}' finished processing");
         }
 
-        private static void PrintClient(int clientId, int[] data)
+        private static void PrintClient(int clientId, int[] data, int[] serverData)
         {
+            ConsoleLogger logger = new ConsoleLogger(System.ConsoleColor.Red);
             System.Console.WriteLine();
             System.Console.WriteLine($"Client with ID: '{clientId}' data set:");
             for (int i = 0; i < data.Length; i++)
             {
-                if (i < data.Length - 1)
-                    System.Console.Write(data[i] + " ");
+                if(i > serverData.Length - 1 || data[i] != serverData[i])
+                {
+                    // print error value
+                    logger.LogWrite(data[i].ToString());
+                    //System.Console.Beep();
+                }
                 else
+                {
+                    // print valid value
                     System.Console.Write(data[i]);
+                }
+
+                // print delimeter
+                if (i < data.Length - 1)
+                    System.Console.Write(" ");
             }
             System.Console.WriteLine();
         }
@@ -109,6 +132,24 @@ namespace Bricks.Hometask.SortedList.Console
                     System.Console.Write(data[i]);
             }
             System.Console.WriteLine();
+        }
+
+        private static void PrintRevisionLog(Dictionary<int, List<IOperation>> revisionLog)
+        {
+            System.Console.WriteLine($"Server revision log:");
+            foreach (var item in revisionLog)
+            {
+                System.Console.WriteLine($"Revision: {item.Key}, Operataions: ");
+                foreach (var operation in item.Value)
+                {
+                    StringBuilder text = new StringBuilder($"ClientId: '{operation.ClientId}', Type: '{operation.OperationType}', Index: '{operation.Index}'");                    
+                    if (operation.OperationType == OperationType.Insert)
+                    {
+                        text.Append($", Value: '{operation.Value}'");
+                    }
+                    System.Console.WriteLine(text.ToString());
+                }
+            }
         }
     }
 }

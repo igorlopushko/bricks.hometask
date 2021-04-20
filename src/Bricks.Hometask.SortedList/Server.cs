@@ -50,6 +50,14 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
+        public Dictionary<int, List<IOperation>> RevisionLog
+        {
+            get
+            {
+                return _revisionLog.ToDictionary(kv => kv.Key, kv => kv.Value);
+            }
+        }
+
         public event BroadcastEventHandler BroadcastRequest;
 
         /// <summary>Constructor.</summary>
@@ -98,7 +106,7 @@ namespace Bricks.Hometask.SortedList.Console
             // wait until all awaiting requests are processed.
             if (!_awaitingRequests.IsEmpty)
             {
-                if (_logginEnabled) _logger.Log("Trying to stop server. Wait until all awaiting requests are processed.");
+                if (_logginEnabled) _logger.LogWriteLine("Trying to stop server. Wait until all awaiting requests are processed.");
                 while(!_awaitingRequests.IsEmpty)
                 {
                     Thread.Sleep(10);
@@ -108,7 +116,7 @@ namespace Bricks.Hometask.SortedList.Console
             _clients.Clear();
             _tokenSource.Cancel();
 
-            if (_logginEnabled) _logger.Log($"Server has been stopped.");
+            if (_logginEnabled) _logger.LogWriteLine($"Server has been stopped.");
         }
                 
         public void RegisterClient(IClient client)
@@ -116,7 +124,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                if (_logginEnabled) _logger.Log($"Client with ID: {client.ClientId} is already registered on the server");
+                if (_logginEnabled) _logger.LogWriteLine($"Client with ID: {client.ClientId} is already registered on the server");
                 
                 return;
             }
@@ -127,12 +135,12 @@ namespace Bricks.Hometask.SortedList.Console
                 client.SyncData(this.Data, this.Revision);
 
                 // logging                
-                if (_logginEnabled) _logger.Log($"Server has registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.LogWriteLine($"Server has registered Client with ID: '{client.ClientId}'");
             }
             else
             {
                 // logging
-                if (_logginEnabled) _logger.Log($"Server can't registered Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.LogWriteLine($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
                 
@@ -141,7 +149,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (!_clients.ContainsKey(client.ClientId))
             {
                 // logging
-                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
+                if (_logginEnabled) _logger.LogWriteLine($"Server can't unregister Client with ID: {client.ClientId}, because it is not registered");
                 
                 return;
             }
@@ -151,12 +159,12 @@ namespace Bricks.Hometask.SortedList.Console
                 removedClient.RequestSent -= ReceivedClientRequestEventHandler;
 
                 // logging
-                if (_logginEnabled) _logger.Log($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
+                if (_logginEnabled) _logger.LogWriteLine($"Server has unregistered Client with ID: '{removedClient.ClientId}'");
             }
             else
             {
                 // logging
-                if (_logginEnabled) _logger.Log($"Server can't unregister Client with ID: '{client.ClientId}'");
+                if (_logginEnabled) _logger.LogWriteLine($"Server can't unregister Client with ID: '{client.ClientId}'");
             }
         }
 
@@ -171,7 +179,7 @@ namespace Bricks.Hometask.SortedList.Console
             StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
             str.Append($", revision: '{request.Revision}'");
             str.Append($", operations count: '{request.Operations.Count()}'");
-            if (_logginEnabled) _logger.Log(str.ToString());            
+            if (_logginEnabled) _logger.LogWriteLine(str.ToString());            
         }
 
         private void ProcessRequests(CancellationToken token)

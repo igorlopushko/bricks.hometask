@@ -68,7 +68,7 @@ namespace Bricks.Hometask.SortedList.Console
         private void Server_BroadcastRequest(IRequest request)
         {
             _receivedRequests.Enqueue(request);
-            if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' received new request from the server");
+            if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' received new request from the server");
         }
 
         public void SyncData(IEnumerable<int> data, int revision)
@@ -89,7 +89,7 @@ namespace Bricks.Hometask.SortedList.Console
             Task.Run(() => SendRequests(_token));
 
             // logging
-            if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' has been started");
+            if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' has been started");
             
             while (true)
             {
@@ -101,7 +101,7 @@ namespace Bricks.Hometask.SortedList.Console
         {
             if (_awaitingRequests.Count() != 0 || _operationsBuffer.Count() != 0)
             {
-                if (_logginEnabled) _logger.Log($"Trying to stop Client with ID: '{ClientId}'");
+                if (_logginEnabled) _logger.LogWriteLine($"Trying to stop Client with ID: '{ClientId}'");
                 while (_awaitingRequests.Count() != 0 || _operationsBuffer.Count() != 0)
                 {
                     Thread.Sleep(100);
@@ -113,7 +113,7 @@ namespace Bricks.Hometask.SortedList.Console
             _server.BroadcastRequest -= Server_BroadcastRequest;
 
             // logging
-            if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' has been stopped");
+            if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' has been stopped");
         }
 
         public void PushOperation(IOperation operation)
@@ -124,7 +124,7 @@ namespace Bricks.Hometask.SortedList.Console
             }
 
             // logging
-            if (_logginEnabled) _logger.Log($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
+            if (_logginEnabled) _logger.LogWriteLine($"Operation occured at Client with ID: '{ClientId}', type: '{operation.OperationType}'");
         }
 
         private void HandleReceivedRequests()
@@ -142,7 +142,7 @@ namespace Bricks.Hometask.SortedList.Console
                     _revision = r.Revision;
 
                     // logging
-                    if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
+                    if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' recieved ack message");
                     return;
                 }
 
@@ -160,7 +160,7 @@ namespace Bricks.Hometask.SortedList.Console
 
                 ApplyOperations(r.Operations.ToList());
 
-                if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' processed incoming request");
+                if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' processed incoming request");
             }
         }
 
@@ -186,7 +186,7 @@ namespace Bricks.Hometask.SortedList.Console
                     _awaitingRequests.Enqueue(request);
                     _operationsBuffer.Clear();
 
-                    if (_logginEnabled) _logger.Log($"Client with ID: '{ClientId}' sent new request to the server");
+                    if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' sent new request to the server");
                 }
             }
         }

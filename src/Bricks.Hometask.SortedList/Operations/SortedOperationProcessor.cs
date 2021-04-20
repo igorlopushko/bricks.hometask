@@ -39,7 +39,11 @@ namespace Bricks.Hometask.SortedList.Console
             }
 
             // check if update index is valid
-            if (operation.Index >= data.Count) return null;
+            if (operation.Index >= data.Count)
+            {
+                System.Console.Beep();
+                return null;
+            }
 
             List<IOperation> result = new List<IOperation>();
             int value = data[operation.Index];
@@ -83,12 +87,6 @@ namespace Bricks.Hometask.SortedList.Console
             }
             
             return end + 1;
-        }
-
-        private static void Log(string text)
-        {
-            System.Console.WriteLine(text);
-            System.Console.Beep();
         }
     }
 }

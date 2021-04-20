@@ -9,10 +9,17 @@
             _color = color;
         }
 
-        public void Log(string text)
+        public void LogWriteLine(string text)
         {
             System.Console.ForegroundColor = _color;
             System.Console.WriteLine(text);
+            System.Console.ResetColor();
+        }
+
+        public void LogWrite(string text)
+        {
+            System.Console.ForegroundColor = _color;
+            System.Console.Write(text);
             System.Console.ResetColor();
         }
     }
