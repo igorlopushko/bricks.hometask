@@ -11,7 +11,7 @@ namespace Bricks.Hometask.SortedList.Console
         {
             // setup clients and number of operations
             int operationsCount = 5;
-            int numberOfClients = 3;
+            int numberOfClients = 4;
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
@@ -53,7 +53,7 @@ namespace Bricks.Hometask.SortedList.Console
             */
 
             // sleep to sync all the data
-            Thread.Sleep(System.TimeSpan.FromSeconds(20));
+            Thread.Sleep(System.TimeSpan.FromSeconds(10));
             //server.Stop();
 
             // print clients data

@@ -86,7 +86,7 @@ namespace Bricks.Hometask.SortedList.Console
                 }
                 else
                 {
-                    return mid;
+                    return mid + 1;
                 }
             }
 

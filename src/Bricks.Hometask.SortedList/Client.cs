@@ -140,18 +140,8 @@ namespace Bricks.Hometask.SortedList.Console
                     // logging
                     _logger.Log($"Client with ID: '{ClientId}' recieved ack message");
                     return;
-                }                
-
-                // transform operations in buffer over the received messages
-                if (!_operationsBuffer.IsEmpty)
-                {
-                    List<IOperation> transformedOperations = OperationTransformer.Transform(_operationsBuffer.ToList(), r.Operations).ToList();
-                    _operationsBuffer.Clear();
-                    foreach (IOperation operation in transformedOperations)
-                    {
-                        _operationsBuffer.Enqueue(operation);
-                    }                    
                 }
+
                 _revision = r.Revision;
 
                 ApplyOperations(r.Operations.ToList());                

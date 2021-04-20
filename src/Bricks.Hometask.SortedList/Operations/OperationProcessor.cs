@@ -36,12 +36,6 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
-        private static void Log(string text)
-        {
-            System.Console.WriteLine(text);
-            System.Console.Beep();
-        }
-
         private static int FindInsertIndex(int[] array, int key)
         {
             if (array[0] > key) return 0;
@@ -66,7 +60,7 @@ namespace Bricks.Hometask.SortedList.Console
                 }
                 else
                 {
-                    return mid;
+                    return mid + 1;
                 }
             }
 
