@@ -10,7 +10,7 @@ namespace Bricks.Hometask.OperationTransformation
         static void Main(string[] args)
         {
             int operationsCount = 5;
-            int numberOfClients = 10;
+            int numberOfClients = 3;
             List<IClient<int>> clients = new List<IClient<int>>();
             List<Task> clientTasks = new List<Task>();
             Server<int> server = new Server<int>();
@@ -31,16 +31,18 @@ namespace Bricks.Hometask.OperationTransformation
 
             Task.WaitAll(clientTasks.ToArray());            
             
+            /*
             clientTasks.Clear();
             foreach (IClient<int> c in clients)
             {
                 clientTasks.Add(Task.Run(() => c.Stop()));
             }
             Task.WaitAll(clientTasks.ToArray());            
+            */
 
             // sleed to sync all the data
-            Thread.Sleep(System.TimeSpan.FromSeconds(20));
-            server.Stop();
+            Thread.Sleep(System.TimeSpan.FromSeconds(10));
+            //server.Stop();
 
             // print clients data
             foreach (IClient<int> c in clients)

@@ -15,7 +15,11 @@ namespace Bricks.Hometask.OperationTransformation
                 throw new NullReferenceException(message);
             }
 
-            if((operation.Index > -1 && operation.Index < data.Count()) || operation.Index == 0)
+            if(operation.Index == data.Count)
+            {
+                data.Add(operation.Value);
+            }
+            if(operation.Index > -1 && operation.Index < data.Count())
             {
                 data.Insert(operation.Index, operation.Value);
             } 
@@ -54,15 +58,14 @@ namespace Bricks.Hometask.OperationTransformation
         public static void DeleteOperation(IList<T> data, IOperation<T> operation)
         {
             // Skip delete if data is empty. It might happen update occured in another client and transformed to Delete/Insert.
-            if (data.Count == 0 && operation.Index == 0) return;
+            if (data.Count == 0) return;
 
             if (data.Count != 0 && operation.Index > -1 && operation.Index < data.Count)
             {
                 data.RemoveAt(operation.Index);
             }
             else
-            {
-                //data.RemoveAt(operation.Index - 1);                
+            {                
                 string message = $"Can't delete item at index: '{operation.Index}', operation timestamp: '{operation.Timestamp}'";
                 Log(message);
                 throw new ArgumentOutOfRangeException(message);
@@ -72,6 +75,7 @@ namespace Bricks.Hometask.OperationTransformation
         private static void Log(string text)
         {            
             Console.WriteLine(text);
+            Console.Beep();
         }
     }
 }
