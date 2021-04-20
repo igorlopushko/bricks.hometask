@@ -88,9 +88,9 @@ namespace Bricks.Hometask.SortedList.Console
             for (int i = 0; i < data.Length; i++)
             {
                 if (i < data.Length - 1)
-                    System.Console.Write(data.ToArray()[i] + ",");
+                    System.Console.Write(data[i] + " ");
                 else
-                    System.Console.Write(data.ToArray()[i]);
+                    System.Console.Write(data[i]);
             }
             System.Console.WriteLine();
         }
@@ -102,9 +102,9 @@ namespace Bricks.Hometask.SortedList.Console
             for (int i = 0; i < data.Length; i++)
             {
                 if (i < data.Length - 1)
-                    System.Console.Write(data.ToArray()[i] + ",");
+                    System.Console.Write(data[i] + " ");
                 else
-                    System.Console.Write(data.ToArray()[i]);
+                    System.Console.Write(data[i]);
             }
             System.Console.WriteLine();
         }

@@ -1,5 +1,6 @@
 ﻿using Bricks.Hometask.Base;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -10,13 +11,23 @@ namespace Bricks.Hometask.OperationTransformation.Console
         static void Main(string[] args)
         {
             // setup clients and number of operations
-            int operationsCount = 5;
-            int numberOfClients = 3;
+            int initDataCount = 30;
+            int operationsCount = 10;
+            int numberOfClients = 5;
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
             Server server = new Server(Startup.ConfigurationRoot);
-            
+
+            // initialize initial state of the server data
+            List<int> initData = new List<int>();
+            for (int i = 0; i < initDataCount; i++)
+            {
+                initData.Add(i);
+            }
+            server.Initialize(initData);
+
+            // run server
             Task.Run(() => server.Run());
 
             // run clients and execute operations
@@ -28,7 +39,7 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 server.RegisterClient(client);
                 Task.Run(() => client.Run());
                 Task t = Task.Run(() => PushOperationsToClient(client, operationsCount));
-                
+
                 clientTasks.Add(t);
             }
 
@@ -44,19 +55,20 @@ namespace Bricks.Hometask.OperationTransformation.Console
                 // print clients data
                 foreach (IClient c in clients)
                 {
-                    PrintClient(c);
+                    PrintClient(c.ClientId, c.Data.ToArray());
                 }
 
-                PrintServer(server);
+                PrintServer(server.Data.ToArray());
 
                 Thread.Sleep(System.TimeSpan.FromSeconds(1));
             }
+
 
             System.Console.ReadLine();
         }
 
         private static void PushOperationsToClient(IClient client, int operationsCount)
-        {            
+        {
             for (int i = 0; i < operationsCount; i++)
             {
                 // generate new operation 5 times per second
@@ -69,24 +81,30 @@ namespace Bricks.Hometask.OperationTransformation.Console
             System.Console.WriteLine($"Client '{client.ClientId}' finished processing");
         }
 
-        private static void PrintClient(IClient client)
+        private static void PrintClient(int clientId, int[] data)
         {
             System.Console.WriteLine();
-            System.Console.WriteLine($"Client with ID: '{client.ClientId}' data set:");
-            foreach (int d in client.Data)
+            System.Console.WriteLine($"Client with ID: '{clientId}' data set:");
+            for (int i = 0; i < data.Length; i++)
             {
-                System.Console.WriteLine(d);
+                if (i < data.Length - 1)
+                    System.Console.Write(data[i] + " ");
+                else
+                    System.Console.Write(data[i]);
             }
             System.Console.WriteLine();
         }
 
-        private static void PrintServer(IServer server)
+        private static void PrintServer(int[] data)
         {
             System.Console.WriteLine();
             System.Console.WriteLine($"Server data set:");
-            foreach (int d in server.Data)
+            for (int i = 0; i < data.Length; i++)
             {
-                System.Console.WriteLine(d);
+                if (i < data.Length - 1)
+                    System.Console.Write(data[i] + " ");
+                else
+                    System.Console.Write(data[i]);
             }
             System.Console.WriteLine();
         }
