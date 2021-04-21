@@ -11,15 +11,17 @@ namespace Bricks.Hometask.SortedList.Console
     class Program
     {
         private static bool _logginEnabled;
+        private static bool _revisionLogEnabled;
 
         static void Main(string[] args)
         {
             _logginEnabled = bool.Parse(Startup.ConfigurationRoot["LoggingEnabled"]);
+            _revisionLogEnabled = bool.Parse(Startup.ConfigurationRoot["RevisionLogEnabled"]);
 
             // setup clients and number of operations
             int initDataCount = 10;
             int operationsCount = 5;
-            int numberOfClients = 3;
+            int numberOfClients = 2;
 
             List<IClient> clients = new List<IClient>();
             List<Task> clientTasks = new List<Task>();
@@ -71,7 +73,7 @@ namespace Bricks.Hometask.SortedList.Console
                 }
 
                 PrintServer(server.Data.ToArray());
-                PrintRevisionLog(server.RevisionLog);
+                if(_revisionLogEnabled) PrintRevisionLog(server.RevisionLog);
 
                 Thread.Sleep(System.TimeSpan.FromSeconds(1));
             }
@@ -104,14 +106,14 @@ namespace Bricks.Hometask.SortedList.Console
                 if(i > serverData.Length - 1 || data[i] != serverData[i])
                 {
                     // print error value
-                    logger.LogWrite(i == 0 ? data[i].ToString() : string.Format("{0,3}", data[i]));
+                    logger.LogWrite(string.Format("{0,3}", data[i]));
                     
                     //System.Console.Beep();
                 }
                 else
                 {
                     // print valid value
-                    System.Console.Write(i == 0 ? data[i] : string.Format("{0,3}", data[i]));
+                    System.Console.Write(string.Format("{0,3}", data[i]));
                 }
 
                 // print delimeter
@@ -127,7 +129,7 @@ namespace Bricks.Hometask.SortedList.Console
             for (int i = 0; i < data.Length; i++)
             {
                 StringBuilder text = new StringBuilder();
-                text.Append(i == 0 ? data[i].ToString() : string.Format("{0,3}", data[i]));
+                text.Append(string.Format("{0,3}", data[i]));
 
                 if (i < data.Length - 1) text.Append(' '); 
 
@@ -140,7 +142,7 @@ namespace Bricks.Hometask.SortedList.Console
             for (int i = 0; i < data.Length; i++)
             {                
                 StringBuilder text = new StringBuilder();
-                text.Append(i == 0 ? i.ToString() : string.Format("{0,3}", i));
+                text.Append(string.Format("{0,3}", i));
 
                 if (i < data.Length - 1) text.Append(' ');
 
@@ -150,7 +152,7 @@ namespace Bricks.Hometask.SortedList.Console
             System.Console.WriteLine();
         }
 
-        private static void PrintRevisionLog(Dictionary<int, List<IOperation>> revisionLog)
+        private static void PrintRevisionLog(Dictionary<int, IList<IOperation>> revisionLog)
         {
             System.Console.WriteLine();
             System.Console.WriteLine($"Server revision log:");

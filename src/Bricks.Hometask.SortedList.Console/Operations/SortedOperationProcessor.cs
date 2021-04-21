@@ -12,58 +12,39 @@ namespace Bricks.Hometask.SortedList.Console
             if(data.Count() == 0)
             {
                 data.Add(operation.Value.Value);
-                return OperationFactory.CreateOperation(OperationType.Insert, 0, operation.ClientId, operation.Value.Value, operation.Timestamp);
+                return OperationFactory.CreateOperation(operation.ClientId, OperationType.Insert, 0, operation.Value.Value, operation.Timestamp);
             }
 
             // perform binary search of the index to insert
             int index = FindInsertIndex(data.ToArray(), operation.Value.Value);
-            // add if index is greater than data length
-            if (index > data.Count - 1)
-            {
-                data.Add(operation.Value.Value);
-            }
-            // insert if index is in a range of data
-            else
-            {
-                data.Insert(index, operation.Value.Value);
-            }
-            return OperationFactory.CreateOperation(OperationType.Insert, index, operation.ClientId, operation.Value.Value, operation.Timestamp);
+            data.Insert(index, operation.Value.Value);
+            return OperationFactory.CreateOperation(operation.ClientId, OperationType.Insert, index, operation.Value.Value, operation.Timestamp);
         }
 
         public static IList<IOperation> UpdateOperation(IList<int> data, IOperation operation)
         {
-            if (data.Count() == 0)
-            {
-                data.Add(operation.Value.Value);
-                return new List<IOperation>() { OperationFactory.CreateOperation(OperationType.Insert, 0, operation.ClientId, operation.Value.Value, operation.Timestamp) };
-            }
-
-            // check if update index is valid
-            if (operation.Index >= data.Count)
-            {
-                System.Console.Beep();
-                return null;
-            }
-
             List<IOperation> result = new List<IOperation>();
             int value = data[operation.Index];
             data.RemoveAt(operation.Index);
-            result.Add(OperationFactory.CreateOperation(OperationType.Delete, operation.Index, operation.ClientId, value, operation.Timestamp));
+            result.Add(OperationFactory.CreateOperation(operation.ClientId, OperationType.Delete, operation.Index, value, operation.Timestamp));
 
             int index = FindInsertIndex(data.ToArray(), operation.Value.Value);
             data.Insert(index, operation.Value.Value);
-            result.Add(OperationFactory.CreateOperation(OperationType.Insert, index, operation.ClientId, operation.Value.Value, operation.Timestamp));
+            result.Add(OperationFactory.CreateOperation(operation.ClientId, OperationType.Insert, index, operation.Value.Value, operation.Timestamp));
 
             return result;
         }
         
         public static IOperation DeleteOperation(IList<int> data, IOperation operation)
         {
-            if (data.Count() == 0 || operation.Index >= data.Count) return null;
+            if (data.Count() == 0 || operation.Index >= data.Count)
+            {
+                return null;
+            }
 
             int value = data[operation.Index];
             data.RemoveAt(operation.Index);
-            return OperationFactory.CreateOperation(OperationType.Delete, operation.Index, operation.ClientId, value, operation.Timestamp);
+            return OperationFactory.CreateOperation(operation.ClientId, OperationType.Delete, operation.Index, value, operation.Timestamp);
         }
 
         private static int FindInsertIndex(int[] array, int key)

@@ -73,7 +73,7 @@ namespace Bricks.Hometask.SortedList.Console
 
         public void SyncData(IEnumerable<int> data, int revision)
         {
-            // skip data sync if data is in initial state
+            // skip data sync if data is in the initial state
             if (data.Count() == 0 && revision == 0) return;
 
             lock(_locker)
@@ -135,7 +135,9 @@ namespace Bricks.Hometask.SortedList.Console
             lock (_locker)
             {
                 // check if request is acknowledgment for the awaiting request 
-                if (r.IsAcknowledged && r.ClientId == ClientId && _awaitingRequests.Count() != 0 &&
+                if (r.IsAcknowledged && 
+                    r.ClientId == ClientId && 
+                    _awaitingRequests.Count() != 0 &&
                     r.Operations.All(o1 => _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
                 {
                     _awaitingRequests.Clear();

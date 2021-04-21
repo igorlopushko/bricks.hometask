@@ -17,7 +17,7 @@ namespace Bricks.Hometask.SortedList.Console
         private readonly ConsoleLogger _logger;
 
         private readonly ConcurrentQueue<IRequest> _awaitingRequests;
-        private readonly ConcurrentDictionary<int, List<IOperation>> _revisionLog;
+        private readonly ConcurrentDictionary<int, IList<IOperation>> _revisionLog;
         private readonly ConcurrentDictionary<int, IClient> _clients;
         private readonly IList<int> _data;
         private int _revision;
@@ -50,7 +50,7 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
-        public Dictionary<int, List<IOperation>> RevisionLog
+        public Dictionary<int, IList<IOperation>> RevisionLog
         {
             get
             {
@@ -66,7 +66,7 @@ namespace Bricks.Hometask.SortedList.Console
             _clients = new ConcurrentDictionary<int, IClient>();
             _data = new List<int>();
             _awaitingRequests = new ConcurrentQueue<IRequest>();
-            _revisionLog = new ConcurrentDictionary<int, List<IOperation>>();
+            _revisionLog = new ConcurrentDictionary<int, IList<IOperation>>();
             _revision = 0;
             _logger = new ConsoleLogger(_color);
 
@@ -175,11 +175,14 @@ namespace Bricks.Hometask.SortedList.Console
                 _awaitingRequests.Enqueue(request);
             }            
             
-            // logging
-            StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
-            str.Append($", revision: '{request.Revision}'");
-            str.Append($", operations count: '{request.Operations.Count()}'");
-            if (_logginEnabled) _logger.LogWriteLine(str.ToString());            
+            // logging            
+            if (_logginEnabled)
+            {
+                StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
+                str.Append($", revision: '{request.Revision}'");
+                str.Append($", operations count: '{request.Operations.Count()}'");
+                _logger.LogWriteLine(str.ToString());
+            }
         }
 
         private void ProcessRequests(CancellationToken token)
@@ -228,11 +231,10 @@ namespace Bricks.Hometask.SortedList.Console
 
             // get operations from revision log since request revision number
             var logOperations = _revisionLog
-                .Where(pair => pair.Key > tempRequest.Revision)
+                .Where(pair => pair.Key >= tempRequest.Revision)
                 .OrderBy(pair => pair.Key).ToList();
 
-            List<IOperation> transformedOperations = new List<IOperation>();
-            transformedOperations.AddRange(tempRequest.Operations);
+            List<IOperation> transformedOperations = new List<IOperation>(tempRequest.Operations);
 
             foreach (var (revision, operations) in logOperations)
             {
@@ -258,7 +260,7 @@ namespace Bricks.Hometask.SortedList.Console
                         OperationProcessor.DeleteOperation(_data, operation);
                         break;
                     default:
-                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
+                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported.");
                 }
             }
         }

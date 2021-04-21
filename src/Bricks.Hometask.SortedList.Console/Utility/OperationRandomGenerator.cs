@@ -17,19 +17,19 @@ namespace Bricks.Hometask.SortedList.Console
             switch (type)
             {
                 case OperationType.Insert:                    
-                    return new Operation(OperationType.Insert, -1, client.ClientId, RandomGenerator.GetNumber(minValue, maxValue));
+                    return new Operation(client.ClientId, OperationType.Insert, -1, RandomGenerator.GetNumber(minValue, maxValue));
                 case OperationType.Update:
                     if (client.Data.Count() == 0)
                     {
-                        return new Operation(OperationType.Insert, -1, client.ClientId, RandomGenerator.GetNumber(minValue, maxValue));
+                        return new Operation(client.ClientId, OperationType.Insert, -1, RandomGenerator.GetNumber(minValue, maxValue));
                     }
-                    return new Operation(OperationType.Update, GetIndex(client), client.ClientId, RandomGenerator.GetNumber(minValue, maxValue));
+                    return new Operation(client.ClientId, OperationType.Update, GetIndex(client), RandomGenerator.GetNumber(minValue, maxValue));
                 case OperationType.Delete:
                     if (client.Data.Count() == 0)
                     {
-                        return new Operation(OperationType.Insert, -1, client.ClientId, RandomGenerator.GetNumber(minValue, maxValue));
+                        return new Operation(client.ClientId, OperationType.Insert, -1, RandomGenerator.GetNumber(minValue, maxValue));
                     }
-                    return new Operation(OperationType.Delete, GetIndex(client), client.ClientId, -1);
+                    return new Operation(client.ClientId, OperationType.Delete, GetIndex(client), -1);
                 default:
                     throw new ArgumentOutOfRangeException($"Operation {type} is not supported");
             }

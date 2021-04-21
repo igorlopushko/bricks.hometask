@@ -2,9 +2,9 @@
 {
     public class OperationFactory
     {
-        public static IOperation CreateOperation(OperationType type, int index, int clientId, int value, long? timestamp = null)
+        public static IOperation CreateOperation(int clientId, OperationType type, int index, int value, long? timestamp = null)
         {
-            return new Operation(type, index, clientId, value, timestamp);
+            return new Operation(clientId, type, index, value, timestamp);
         }
     }
 }
