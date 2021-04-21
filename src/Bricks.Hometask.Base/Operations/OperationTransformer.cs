@@ -58,8 +58,10 @@ namespace Bricks.Hometask.Base
         /// <param name="o2">Operation with respect to which perform the transformation.</param>
         /// <returns>Transformed operation.</returns>
         private static IOperation TransformInsertInsert(IOperation o1, IOperation o2)
-        {            
-            if (o1.Index < o2.Index || (o1.Index == o2.Index && o1.Timestamp < o2.Timestamp))
+        {
+            // Original OT algorithm considers Timstamp to determine which operation has higher priority.
+            // Here the value comparison is used to support sorted data set.
+            if (o1.Index < o2.Index || (o1.Index == o2.Index && (o1.Value.Value < o2.Value.Value || o1.Value.Value == o2.Value.Value)))
             {
                 // Tii(Ins[3, "a"], Ins[4, "b"]) -> Ins[3, "a"]
                 return o1;

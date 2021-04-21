@@ -3,6 +3,7 @@ using Bricks.Hometask.Utility;
 using Microsoft.Extensions.Configuration;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
 using System.Threading;
@@ -54,7 +55,7 @@ namespace Bricks.Hometask.SortedList.Console
         {
             get
             {
-                return _revisionLog.ToDictionary(kv => kv.Key, kv => kv.Value);
+                return _revisionLog.ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
             }
         }
 
