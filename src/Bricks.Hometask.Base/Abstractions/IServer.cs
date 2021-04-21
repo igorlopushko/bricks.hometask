@@ -21,13 +21,17 @@ namespace Bricks.Hometask.Base
         /// <summary>Stops server's execution.</summary>
         public void Stop();
         
-        /// <summary>Registers a new client within the server.</summary>
+        /// <summary>Connects a new client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void RegisterClient(IClient client);
-        
-        /// <summary>Unregisters a client within the server.</summary>
+        public void ConnectClient(IClient client);
+
+        /// <summary>Reconnects a client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void UnregisterClient(IClient client);
+        public void ReconnectClient(IClient client);
+
+        /// <summary>Disconnects a client within the server.</summary>
+        /// <param name="client">Client object instance.</param>
+        public void DisconnectClient(IClient client);
 
 
         /// <summary>An event that occurs when the server emits a new request.</summary>

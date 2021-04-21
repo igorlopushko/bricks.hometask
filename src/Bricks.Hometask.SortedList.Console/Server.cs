@@ -120,7 +120,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (_logginEnabled) _logger.LogWriteLine($"Server has been stopped.");
         }
                 
-        public void RegisterClient(IClient client)
+        public void ConnectClient(IClient client)
         {
             if (_clients.ContainsKey(client.ClientId))
             {
@@ -144,8 +144,26 @@ namespace Bricks.Hometask.SortedList.Console
                 if (_logginEnabled) _logger.LogWriteLine($"Server can't registered Client with ID: '{client.ClientId}'");
             }
         }
-                
-        public void UnregisterClient(IClient client)
+
+        public void ReconnectClient(IClient client)
+        {
+            if (!_clients.ContainsKey(client.ClientId))
+            {
+                // connect a new client if no client in the connection list.
+                ConnectClient(client);
+                return;
+            }
+
+            IDictionary<int, IList<IOperation>> revisionLog = _revisionLog
+                .Where(pair => pair.Key >= client.Revision)
+                .OrderBy(pair => pair.Key)
+                .ToImmutableDictionary(kv => kv.Key, kv => kv.Value);
+
+            client.ResyncData(revisionLog);
+        }
+
+
+        public void DisconnectClient(IClient client)
         {
             if (!_clients.ContainsKey(client.ClientId))
             {

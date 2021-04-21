@@ -44,7 +44,7 @@ namespace Bricks.Hometask.SortedList.Console
                 Client client = new Client(server, i + 1, Startup.ConfigurationRoot);
                 clients.Add(client);
 
-                server.RegisterClient(client);
+                server.ConnectClient(client);
                 Task.Run(() => client.Run());
                 Task t = Task.Run(() => PushOperationsToClient(client, operationsCount));
 

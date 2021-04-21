@@ -11,7 +11,10 @@ namespace Bricks.Hometask.Base
 
         /// <summary>Gets current client state.</summary>
         public IEnumerable<int> Data { get; }
-        
+
+        /// <summary>Gets client last synchronized revision.</summary>
+        public int Revision { get; }
+
         /// <summary>Runs client.</summary>
         public void Run();
 
@@ -22,7 +25,11 @@ namespace Bricks.Hometask.Base
         /// <param name="data">Data to be synced.</param>
         /// <param name="revision">Last synced revision number.</param>
         public void SyncData(IEnumerable<int> data, int revision);
-        
+
+        /// <summary>Sync data with the source of truth.</summary>
+        /// <param name="revisionLog">Revision log that occurred since the client's last synchronized revision.</param>
+        public void ResyncData(IDictionary<int, IList<IOperation>> revisionLog);
+
         /// <summary>Receives operation from external world.</summary>
         /// <param name="operation">Operation instance to be processed.</param>
         public void PushOperation(IOperation operation);

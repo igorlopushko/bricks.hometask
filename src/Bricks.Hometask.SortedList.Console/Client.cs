@@ -43,6 +43,17 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
+        public int Revision
+        {
+            get
+            {
+                lock(_locker)
+                {
+                    return _revision;
+                }
+            }
+        }
+
         public event RequestSentEventHandler RequestSent;
 
         /// <summary>Constructor.</summary>
@@ -76,13 +87,24 @@ namespace Bricks.Hometask.SortedList.Console
             // skip data sync if data is in the initial state
             if (data.Count() == 0 && revision == 0) return;
 
-            lock(_locker)
+            lock (_locker)
             {
                 _data = new List<int>(data.ToList());
                 _revision = revision;
             }
         }
-        
+
+        public void ResyncData(IDictionary<int, IList<IOperation>> revisionLog)
+        {
+            // skip data sync if data is in the initial state
+            if (revisionLog.Count() == 0) return;
+
+            foreach (var (revision, operations) in revisionLog)
+            {
+                _receivedRequests.Enqueue(RequestFactory.CreateRequest(-1, revision, operations, true));
+            }
+        }
+
         public void Run()
         {   
             // run async job to send requests to server
