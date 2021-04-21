@@ -104,8 +104,6 @@ namespace Bricks.Hometask.SortedList.Console
                 {
                     // print error value
                     logger.LogWrite(string.Format("{0,3}", data[i]));
-                    
-                    //System.Console.Beep();
                 }
                 else
                 {
