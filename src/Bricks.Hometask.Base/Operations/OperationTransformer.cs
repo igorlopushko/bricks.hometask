@@ -5,6 +5,10 @@ namespace Bricks.Hometask.Base
 {
     public static class OperationTransformer
     {
+        /// <summary>Performs transformation of operation set A to operation set B.</summary>
+        /// <param name="a">Operation set A to be transformed.</param>
+        /// <param name="b">Operation set B is a basis of the transformation.</param>
+        /// <returns>Transformed operation set.</returns>
         public static IEnumerable<IOperation> Transform(IEnumerable<IOperation> a, IEnumerable<IOperation> b)
         {
             if (a.Count() == 0) return new List<IOperation>();

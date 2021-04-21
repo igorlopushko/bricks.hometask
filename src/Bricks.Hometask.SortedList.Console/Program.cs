@@ -18,7 +18,7 @@ namespace Bricks.Hometask.SortedList.Console
             _logginEnabled = bool.Parse(Startup.ConfigurationRoot["LoggingEnabled"]);
             _revisionLogEnabled = bool.Parse(Startup.ConfigurationRoot["RevisionLogEnabled"]);
 
-            // setup clients and number of operations
+            // setup number of clients and operations, initial data set length
             int initDataCount = 10;
             int operationsCount = 5;
             int numberOfClients = 2;
@@ -77,9 +77,6 @@ namespace Bricks.Hometask.SortedList.Console
 
                 Thread.Sleep(System.TimeSpan.FromSeconds(1));
             }
-
-
-            System.Console.ReadLine();
         }
 
         private static void PushOperationsToClient(IClient client, int operationsCount)
