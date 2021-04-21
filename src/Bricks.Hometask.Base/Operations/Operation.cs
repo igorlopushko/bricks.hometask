@@ -10,7 +10,7 @@ namespace Bricks.Hometask.Base
         public long Timestamp { get; }
         public int ClientId { get; }
 
-        public Operation(int clientId, OperationType type, int index, int value, long? timestamp = null)
+        public Operation(int clientId, OperationType type, int index, int? value, long? timestamp = null)
         {
             OperationType = type;
             Index = index;

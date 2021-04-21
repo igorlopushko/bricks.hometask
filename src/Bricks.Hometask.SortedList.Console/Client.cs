@@ -168,25 +168,6 @@ namespace Bricks.Hometask.SortedList.Console
                     transformedRequest = RequestFactory.CreateRequest(request.ClientId, request.Revision, transformedOperations, request.IsAcknowledged);
                 }
 
-                // transform incomming request operations according to the operations in buffer
-                if (_operationsBuffer.Count() != 0)
-                {
-                    List<IOperation> transformedOperations = OperationTransformer.Transform(request.Operations.ToList(), _operationsBuffer.ToList()).ToList();
-                    transformedRequest = RequestFactory.CreateRequest(request.ClientId, request.Revision, transformedOperations, request.IsAcknowledged);
-                }
-
-
-                // transform operations in buffer according to the received request operations
-                if (!_operationsBuffer.IsEmpty)
-                {
-                    List<IOperation> transformedOperations = OperationTransformer.Transform(_operationsBuffer.ToList(), request.Operations.ToList()).ToList();
-                    _operationsBuffer.Clear();
-                    foreach (IOperation operation in transformedOperations)
-                    {
-                        _operationsBuffer.Enqueue(operation);
-                    }
-                }
-
                 _revision = request.Revision;
 
                 ApplyOperations(transformedRequest.Operations.ToList());
@@ -211,15 +192,13 @@ namespace Bricks.Hometask.SortedList.Console
                     if (RequestSent == null) continue;
 
                     // send a new request with the queued operations from the buffer
-                    if (_operationsBuffer.TryDequeue(out IOperation operation))
-                    {
-                        IRequest request = RequestFactory.CreateRequest(ClientId, _revision, new List<IOperation>() { operation });
-                        RequestSent.Invoke(request);
+                    IRequest request = RequestFactory.CreateRequest(ClientId, _revision, _operationsBuffer.ToList());
+                    RequestSent.Invoke(request);
 
-                        _awaitingRequests.Enqueue(request);
+                    _awaitingRequests.Enqueue(request);
+                    _operationsBuffer.Clear();
 
-                        if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' sent new request to the server");
-                    }
+                    if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' sent new request to the server");
                 }
             }
         }
