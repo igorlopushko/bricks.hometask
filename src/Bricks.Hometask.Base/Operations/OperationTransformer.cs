@@ -9,48 +9,37 @@ namespace Bricks.Hometask.Base
         /// <param name="a">Operation set A to be transformed.</param>
         /// <param name="b">Operation set B is a basis of the transformation.</param>
         /// <returns>Transformed operation set.</returns>
-        public static IEnumerable<IOperation> Transform(IEnumerable<IOperation> a, IEnumerable<IOperation> b)
+        public static IOperation Transform(IOperation a, IEnumerable<IOperation> b)
         {
-            if (a.Count() == 0) return new List<IOperation>();
-            List<IOperation> result = new List<IOperation>(a.ToArray());
-            
+            IOperation transformedOperation = a;
+
             foreach (IOperation operationB in b)
             {
-                List<IOperation> temp = new List<IOperation>();
-
-                foreach (IOperation operationA in result)
+                if (transformedOperation.OperationType == OperationType.Insert &&
+                    operationB.OperationType == OperationType.Insert)
                 {
-                    IOperation transformedOperation = null;
-                    
-                    if (operationA.OperationType == OperationType.Insert &&
-                        operationB.OperationType == OperationType.Insert)
-                    {
-                        transformedOperation = TransformInsertInsert(operationA, operationB);
-                    } else if (operationA.OperationType == OperationType.Insert &&
-                               operationB.OperationType == OperationType.Delete)
-                    {
-                        transformedOperation = TransformInsertDelete(operationA, operationB);
-                    } else if (operationA.OperationType == OperationType.Delete &&
-                               operationB.OperationType == OperationType.Insert)
-                    {
-                        transformedOperation = TransformDeleteInsert(operationA, operationB);
-                    } else if (operationA.OperationType == OperationType.Delete &&
-                               operationB.OperationType == OperationType.Delete)
-                    {
-                        transformedOperation = TransformDeleteDelete(operationA, operationB);
-                    }
-
-                    if (transformedOperation != null)
-                    {
-                        temp.Add(transformedOperation);
-                    }
+                    transformedOperation = TransformInsertInsert(transformedOperation, operationB);
+                } else if (transformedOperation.OperationType == OperationType.Insert &&
+                            operationB.OperationType == OperationType.Delete)
+                {
+                    transformedOperation = TransformInsertDelete(transformedOperation, operationB);
+                } else if (transformedOperation.OperationType == OperationType.Delete &&
+                            operationB.OperationType == OperationType.Insert)
+                {
+                    transformedOperation = TransformDeleteInsert(transformedOperation, operationB);
+                } else if (transformedOperation.OperationType == OperationType.Delete &&
+                            operationB.OperationType == OperationType.Delete)
+                {
+                    transformedOperation = TransformDeleteDelete(transformedOperation, operationB);
                 }
 
-                result.Clear();
-                result.AddRange(temp);
+                if (transformedOperation == null)
+                {
+                    return null;
+                }
             }
 
-            return result;
+            return transformedOperation;
         }
         
         /// <summary>Transform Insert-Insert case.</summary>

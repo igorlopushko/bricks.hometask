@@ -147,19 +147,19 @@ namespace Bricks.Hometask.SortedList.Console
             System.Console.WriteLine();
         }
 
-        private static void PrintRevisionLog(IDictionary<int, IList<IOperation>> revisionLog)
+        private static void PrintRevisionLog(IDictionary<int, IOperation> revisionLog)
         {
             System.Console.WriteLine();
             System.Console.WriteLine($"Server revision log:");
             foreach (var item in revisionLog)
             {
-                System.Console.WriteLine($"Revision: #{item.Key}, Operataions: ");
-                foreach (var operation in item.Value)
+                System.Console.WriteLine($"Revision: #{item.Key}, Operataion: ");
+                //foreach (var operation in item.Value)
                 {
-                    StringBuilder text = new StringBuilder($"ClientId: '{operation.ClientId}', Type: '{operation.OperationType}', Index: '{operation.Index}'");                    
-                    if (operation.OperationType == OperationType.Insert)
+                    StringBuilder text = new StringBuilder($"ClientId: '{item.Value.ClientId}', Type: '{item.Value.OperationType}', Index: '{item.Value.Index}'");                    
+                    if (item.Value.OperationType == OperationType.Insert)
                     {
-                        text.Append($", Value: '{operation.Value}'");
+                        text.Append($", Value: '{item.Value.Value}'");
                     }
                     System.Console.WriteLine(text.ToString());                    
                 }

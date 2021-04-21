@@ -5,7 +5,7 @@ namespace Bricks.Hometask.Base
     public interface IRequest
     {
         /// <summary>Gets collection of operations./// </summary>
-        public IEnumerable<IOperation> Operations { get; }
+        public IOperation Operation { get; }
 
         /// <summary>Gets client unique identifier that initiated the request./// </summary>
         public int ClientId { get; }

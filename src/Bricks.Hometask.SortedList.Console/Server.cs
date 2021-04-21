@@ -18,7 +18,7 @@ namespace Bricks.Hometask.SortedList.Console
         private readonly ConsoleLogger _logger;
 
         private readonly ConcurrentQueue<IRequest> _awaitingRequests;
-        private readonly ConcurrentDictionary<int, IList<IOperation>> _revisionLog;
+        private readonly ConcurrentDictionary<int, IOperation> _revisionLog;
         private readonly ConcurrentDictionary<int, IClient> _clients;
         private readonly IList<int> _data;
         private int _revision;
@@ -51,7 +51,7 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
-        public IDictionary<int, IList<IOperation>> RevisionLog
+        public IDictionary<int, IOperation> RevisionLog
         {
             get
             {
@@ -67,7 +67,7 @@ namespace Bricks.Hometask.SortedList.Console
             _clients = new ConcurrentDictionary<int, IClient>();
             _data = new List<int>();
             _awaitingRequests = new ConcurrentQueue<IRequest>();
-            _revisionLog = new ConcurrentDictionary<int, IList<IOperation>>();
+            _revisionLog = new ConcurrentDictionary<int, IOperation>();
             _revision = 0;
             _logger = new ConsoleLogger(_color);
 
@@ -180,8 +180,7 @@ namespace Bricks.Hometask.SortedList.Console
             if (_logginEnabled)
             {
                 StringBuilder str = new StringBuilder($"Server received operation from Client with ID: '{request.ClientId}'");
-                str.Append($", revision: '{request.Revision}'");
-                str.Append($", operations count: '{request.Operations.Count()}'");
+                str.Append($", revision: '{request.Revision}'");                
                 _logger.LogWriteLine(str.ToString());
             }
         }
@@ -198,17 +197,21 @@ namespace Bricks.Hometask.SortedList.Console
                     // transform request operations according to the current server state
                     IRequest transformedRequest = TransformRequest(request);
 
-                    // apply operations over the server data document
-                    ApplyOperations(transformedRequest);
+                    // if no operations to apply skip processing
+                    if (transformedRequest.Operation != null)
+                    {
+                        // apply operations over the server data document
+                        ApplyOperation(transformedRequest);
 
-                    // save operations to the server revision log
-                    _revisionLog.TryAdd(_revision, transformedRequest.Operations.ToList());
+                        // save operations to the server revision log
+                        _revisionLog.TryAdd(_revision, transformedRequest.Operation);
+                    }
 
                     // acknowledge the request
                     IRequest acknowledgedRequest = RequestFactory.CreateRequest(
                         transformedRequest.ClientId,
                         _revision + 1,
-                        transformedRequest.Operations.ToList(),
+                        transformedRequest.Operation,
                         true);
 
                     // broadcast operations to other clients
@@ -235,33 +238,36 @@ namespace Bricks.Hometask.SortedList.Console
                 .Where(pair => pair.Key >= tempRequest.Revision)
                 .OrderBy(pair => pair.Key).ToList();
 
-            List<IOperation> transformedOperations = new List<IOperation>(tempRequest.Operations);
+            IOperation transformedOperation = tempRequest.Operation;
 
-            foreach (var (revision, operations) in logOperations)
+            foreach (var (revision, operation) in logOperations)
             {
-                List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
-                transformedOperations = new List<IOperation>(temp);
-                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
+                IOperation temp = OperationTransformer.Transform(transformedOperation, new List<IOperation> { operation });
+                if (temp == null)
+                {
+                    return RequestFactory.CreateRequest(tempRequest.ClientId, revision, null);
+                }
+                transformedOperation = temp;
+                tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperation);
             }
 
             return tempRequest;
         }
 
-        private void ApplyOperations(IRequest request)
+        private void ApplyOperation(IRequest request)
         {
-            foreach (IOperation operation in request.Operations)
+            if (request.Operation == null) return;
+
+            switch (request.Operation.OperationType)
             {
-                switch (operation.OperationType)
-                {
-                    case OperationType.Insert:
-                        OperationProcessor.InsertOperation(_data, operation);
-                        break;
-                    case OperationType.Delete:
-                        OperationProcessor.DeleteOperation(_data, operation);
-                        break;
-                    default:
-                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported.");
-                }
+                case OperationType.Insert:
+                    OperationProcessor.InsertOperation(_data, request.Operation);
+                    break;
+                case OperationType.Delete:
+                    OperationProcessor.DeleteOperation(_data, request.Operation);
+                    break;
+                default:
+                    throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported.");
             }
         }
     }

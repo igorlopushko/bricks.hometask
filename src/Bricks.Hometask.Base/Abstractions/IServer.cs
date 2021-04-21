@@ -13,7 +13,7 @@ namespace Bricks.Hometask.Base
         public int Revision { get; }
 
         /// <summary>Gets server revision log.</summary>
-        public IDictionary<int, IList<IOperation>> RevisionLog { get; }
+        public IDictionary<int, IOperation> RevisionLog { get; }
 
         /// <summary>Runs server.</summary>
         public void Run();

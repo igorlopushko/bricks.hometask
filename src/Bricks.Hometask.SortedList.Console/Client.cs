@@ -137,8 +137,7 @@ namespace Bricks.Hometask.SortedList.Console
                 // check if request is acknowledgment for the awaiting request 
                 if (request.IsAcknowledged && 
                     request.ClientId == ClientId && 
-                    _awaitingRequests.Count() != 0 &&
-                    request.Operations.All(o1 => _awaitingRequests.First().Operations.Any(o2 => o1.Timestamp == o2.Timestamp)))
+                    _awaitingRequests.Count() != 0)
                 {
                     _awaitingRequests.Clear();
                     _revision = request.Revision;
@@ -148,29 +147,48 @@ namespace Bricks.Hometask.SortedList.Console
                     return;
                 }
 
+                // Check if operation is not valid any more. Happens when DeleteDelete transformation occurs.
+                if (request.Operation == null)
+                {
+                    return;
+                }
+
                 IRequest transformedRequest = request;
 
                 // transform operations in buffer according to the received request operations
                 if (!_operationsBuffer.IsEmpty)
                 {
-                    List<IOperation> transformedOperations = OperationTransformer.Transform(_operationsBuffer.ToList(), request.Operations.ToList()).ToList();
-                    _operationsBuffer.Clear();
-                    foreach (IOperation operation in transformedOperations)
+                    List<IOperation> bufferOperation = new List<IOperation>();
+                    foreach (IOperation operation in _operationsBuffer.ToList())
                     {
-                        _operationsBuffer.Enqueue(operation);
+                        IOperation transformedOperation = OperationTransformer.Transform(operation, new List<IOperation>() { request.Operation });
+                        if (transformedOperation != null)
+                        {
+                            bufferOperation.Add(transformedOperation);
+                        }
+                    }
+                    _operationsBuffer.Clear();
+                    foreach (var item in bufferOperation)
+                    {
+                        _operationsBuffer.Enqueue(item);
                     }
                 }
 
                 // transform incomming request operations according to the awating request operations 
                 if (_awaitingRequests.Count() != 0)
                 {
-                    List<IOperation> transformedOperations = OperationTransformer.Transform(request.Operations.ToList(), _awaitingRequests.First().Operations.ToList()).ToList();
-                    transformedRequest = RequestFactory.CreateRequest(request.ClientId, request.Revision, transformedOperations, request.IsAcknowledged);
+                    IOperation transformedOperation = OperationTransformer.Transform(request.Operation, new List<IOperation> { _awaitingRequests.First().Operation });
+                    if (transformedOperation == null)
+                    {
+                        return;
+                    }
+
+                    transformedRequest = RequestFactory.CreateRequest(request.ClientId, request.Revision, transformedOperation, request.IsAcknowledged);
                 }
 
                 _revision = request.Revision;
 
-                ApplyOperations(transformedRequest.Operations.ToList());
+                ApplyOperation(transformedRequest.Operation);
 
                 if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' processed incoming request");
             }
@@ -191,33 +209,32 @@ namespace Bricks.Hometask.SortedList.Console
                     // if no subscriber (server) attached do not send operations
                     if (RequestSent == null) continue;
 
-                    // send a new request with the queued operations from the buffer
-                    IRequest request = RequestFactory.CreateRequest(ClientId, _revision, _operationsBuffer.ToList());
-                    RequestSent.Invoke(request);
+                    if (_operationsBuffer.TryDequeue(out IOperation operation))
+                    {
+                        // send a new request with the queued operations from the buffer
+                        IRequest request = RequestFactory.CreateRequest(ClientId, _revision, operation);
+                        RequestSent.Invoke(request);
 
-                    _awaitingRequests.Enqueue(request);
-                    _operationsBuffer.Clear();
+                        _awaitingRequests.Enqueue(request);
 
-                    if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' sent new request to the server");
+                        if (_logginEnabled) _logger.LogWriteLine($"Client with ID: '{ClientId}' sent new request to the server");
+                    }
                 }
             }
         }
 
-        private void ApplyOperations(IEnumerable<IOperation> operations)
+        private void ApplyOperation(IOperation operation)
         {
-            foreach (IOperation operation in operations)
+            switch (operation.OperationType)
             {
-                switch (operation.OperationType)
-                {
-                    case OperationType.Insert:
-                        OperationProcessor.InsertOperation(_data, operation);
-                        break;
-                    case OperationType.Delete:
-                        OperationProcessor.DeleteOperation(_data, operation);
-                        break;
-                    default:
-                        throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
-                }
+                case OperationType.Insert:
+                    OperationProcessor.InsertOperation(_data, operation);
+                    break;
+                case OperationType.Delete:
+                    OperationProcessor.DeleteOperation(_data, operation);
+                    break;
+                default:
+                    throw new System.ArgumentOutOfRangeException($"Only Insert and Delete operations are supported");
             }
         }
         
