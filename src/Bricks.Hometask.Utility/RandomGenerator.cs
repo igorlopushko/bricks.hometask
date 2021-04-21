@@ -1,6 +1,7 @@
+using Bricks.Hometask.Base;
 using System;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Utility
 {
     public static class RandomGenerator
     {

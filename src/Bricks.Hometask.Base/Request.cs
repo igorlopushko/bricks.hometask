@@ -1,17 +1,17 @@
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
-    public class Request<T> : IRequest<T>
+    public class Request : IRequest
     {
-        private List<IOperation<T>> _operations;
+        private List<IOperation> _operations;
         
-        public IEnumerable<IOperation<T>> Operations
+        public IEnumerable<IOperation> Operations
         {
             get
             {
-                foreach (IOperation<T> item in _operations)
+                foreach (IOperation item in _operations)
                 {
                     yield return item;
                 }
@@ -22,7 +22,7 @@ namespace Bricks.Hometask.OperationTransformation
         public int Revision { get; }
         public bool IsAcknowledged { get; }
 
-        public Request(int clientId, int revision,  IEnumerable<IOperation<T>> operations, bool isAcknowledged = false)
+        public Request(int clientId, int revision,  IEnumerable<IOperation> operations, bool isAcknowledged = false)
         {
             ClientId = clientId;
             Revision = revision;

@@ -1,16 +1,19 @@
 using System.Collections.Generic;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
-    public delegate void BroadcastEventHandler<T>(IRequest<T> request);
+    public delegate void BroadcastEventHandler(IRequest request);
 
-    public interface IServer<T>
+    public interface IServer
     {
         /// <summary>Gets current server state.</summary>
-        public IEnumerable<T> Data { get; }
+        public IEnumerable<int> Data { get; }
         
         /// <summary>Gets current server revision number.</summary>
         public int Revision { get; }
+
+        /// <summary>Gets server revision log.</summary>
+        public IDictionary<int, IList<IOperation>> RevisionLog { get; }
 
         /// <summary>Runs server.</summary>
         public void Run();
@@ -20,14 +23,14 @@ namespace Bricks.Hometask.OperationTransformation
         
         /// <summary>Registers a new client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void RegisterClient(IClient<T> client);
+        public void RegisterClient(IClient client);
         
         /// <summary>Unregisters a client within the server.</summary>
         /// <param name="client">Client object instance.</param>
-        public void UnregisterClient(IClient<T> client);
+        public void UnregisterClient(IClient client);
 
 
         /// <summary>An event that occurs when the server emits a new request.</summary>
-        public event BroadcastEventHandler<T> BroadcastRequest;
+        public event BroadcastEventHandler BroadcastRequest;
     }
 }

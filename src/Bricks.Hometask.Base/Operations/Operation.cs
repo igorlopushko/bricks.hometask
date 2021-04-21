@@ -1,16 +1,16 @@
 using System;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
-    public class Operation<T> : IOperation<T>
+    public class Operation : IOperation
     {
         public OperationType OperationType { get; }
-        public T Value { get; }
+        public int? Value { get; }
         public int Index { get; }
         public long Timestamp { get; }
         public int ClientId { get; }
 
-        public Operation(OperationType type, int index, int clientId, T value, long? timestamp = null)
+        public Operation(int clientId, OperationType type, int index, int value, long? timestamp = null)
         {
             OperationType = type;
             Index = index;
@@ -28,12 +28,5 @@ namespace Bricks.Hometask.OperationTransformation
                 Timestamp = new DateTimeOffset(DateTime.UtcNow).ToUnixTimeMilliseconds();
             }
         }
-    }
-
-    public enum OperationType
-    {
-        Insert,
-        Update,
-        Delete
     }
 }

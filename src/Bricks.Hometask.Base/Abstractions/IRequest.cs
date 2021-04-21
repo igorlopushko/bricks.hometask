@@ -1,11 +1,11 @@
 using System.Collections.Generic;
 
-namespace Bricks.Hometask.OperationTransformation
+namespace Bricks.Hometask.Base
 {
-    public interface IRequest<T>
+    public interface IRequest
     {
         /// <summary>Gets collection of operations./// </summary>
-        public IEnumerable<IOperation<T>> Operations { get; }
+        public IEnumerable<IOperation> Operations { get; }
 
         /// <summary>Gets client unique identifier that initiated the request./// </summary>
         public int ClientId { get; }
