@@ -12,6 +12,9 @@ namespace Bricks.Hometask.Base
         /// <summary>Gets current server revision number.</summary>
         public int Revision { get; }
 
+        /// <summary>Gets server revision log.</summary>
+        public IDictionary<int, IList<IOperation>> RevisionLog { get; }
+
         /// <summary>Runs server.</summary>
         public void Run();
         

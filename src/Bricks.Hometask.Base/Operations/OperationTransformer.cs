@@ -115,7 +115,7 @@ namespace Bricks.Hometask.Base
                 return OperationFactory.CreateOperation(o1.ClientId, o1.OperationType, o1.Index - 1, o1.Value.Value, o1.Timestamp);
             }
 
-            // breaking delete-tie using I (identity operation) Tdd(Del[3], Del[3]) -> I
+            // breaking deletion (identity operation), meaning operations are equivalent Tdd(Del[3], Del[3]) -> I
             return null;
         }
     }

@@ -50,7 +50,7 @@ namespace Bricks.Hometask.SortedList.Console
             }
         }
 
-        public Dictionary<int, IList<IOperation>> RevisionLog
+        public IDictionary<int, IList<IOperation>> RevisionLog
         {
             get
             {
@@ -239,8 +239,7 @@ namespace Bricks.Hometask.SortedList.Console
             foreach (var (revision, operations) in logOperations)
             {
                 List<IOperation> temp = OperationTransformer.Transform(transformedOperations, operations).ToList();
-                transformedOperations.Clear();
-                transformedOperations.AddRange(temp);
+                transformedOperations = new List<IOperation>(temp);
                 tempRequest = RequestFactory.CreateRequest(tempRequest.ClientId, revision, transformedOperations);
             }
 

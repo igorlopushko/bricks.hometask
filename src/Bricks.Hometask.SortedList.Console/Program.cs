@@ -152,7 +152,7 @@ namespace Bricks.Hometask.SortedList.Console
             System.Console.WriteLine();
         }
 
-        private static void PrintRevisionLog(Dictionary<int, IList<IOperation>> revisionLog)
+        private static void PrintRevisionLog(IDictionary<int, IList<IOperation>> revisionLog)
         {
             System.Console.WriteLine();
             System.Console.WriteLine($"Server revision log:");
